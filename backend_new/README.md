@@ -1,300 +1,218 @@
-# Riesgo IA - Backend Multi-Agente
+# 🏗️ Estructura del Proyecto - Backend Riesgo IA
 
-Sistema backend con arquitectura multi-agente (LangGraph) para generación automática de matrices de riesgos SST (GTC 45:2012 y RAM).
-
-## 📋 Arquitectura
-
-### Esquema Medallón (Bronze/Silver/Gold)
-- **Bronze**: Datos crudos de ingesta (documentos, textos extraídos)
-- **Silver**: Datos normalizados (catálogos, normativas, resultados intermedios de agentes)
-- **Gold**: Datos finales del negocio (matrices GTC 45 y RAM listas para exportar)
-
-### Sistema Multi-Agente (LangGraph)
-Flujo de procesamiento a través de 6 nodos:
-
-1. **Agent_Extractor**: Extrae texto estructurado del documento → Bronze
-2. **Agent_Hazard_ID**: Identifica procesos, actividades, tareas y peligros → Silver
-3. **Agent_Risk_Mapper**: Asocia peligros a riesgos y efectos posibles → Silver
-4. **Agent_Control_Planner**: Propone controles según jerarquía GTC 45 → Silver
-5. **Node_Calculator** (Determin\u00edstico): Calcula NR=NP×NC, cruza matriz RAM → Sin IA
-6. **Node_Builder**: Construye matriz final → Gold
-
-### Stack Tecnológico
-- **FastAPI** (v1.0) + Pydantic v2
-- **PostgreSQL** + SQLAlchemy 2.x + Alembic
-- **LangChain + LangGraph** para orquestación de agentes
-- **Celery + Redis** para procesamiento asíncrono
-- **PyMuPDF, python-docx, openpyxl** para procesamiento de documentos
-
-## 🏗️ Estructura del Proyecto
+## 📁 Organización de Carpetas
 
 ```
-backend/
-├── agents/                  # Agentes individuales del grafo
-│   ├── agent_extractor.py
-│   ├── agent_hazard_id.py
-│   ├── agent_risk_mapper.py
-│   ├── agent_control_planner.py
-│   ├── node_calculator.py
-│   └── node_builder.py
-├── db/                      # Base de datos
-│   ├── schemas/            # Esquemas Bronze/Silver/Gold
-│   │   ├── bronze.py
-│   │   ├── silver.py
-│   │   └── gold.py
-│   ├── session.py
-│   └── init_schemas.sql
-├── graphs/                  # LangGraph workflows
-│   ├── gtc45_graph.py      # Grafo principal
-│   └── state.py            # AgentState (Pydantic)
-├── api/                     # FastAPI endpoints
+backend_new/
+├── 📋 prompts/                       # Prompts de cada agente (fácil modificación)
+│   ├── agent_01_extractor_prompt.py
+│   ├── agent_02_hazard_identifier_prompt.py
+│   ├── agent_03_risk_mapper_prompt.py
+│   └── agent_04_control_planner_prompt.py
+│
+├── 🎯 agents/                        # Agentes individuales (nomenclatura descriptiva)
+│   ├── agent_01_extractor.py        # Extrae texto de documentos
+│   ├── agent_02_hazard_identifier.py # Identifica peligros GTC 45
+│   ├── agent_03_risk_mapper.py      # Mapea riesgos y efectos
+│   ├── agent_04_control_planner.py  # Planifica controles (jerarquía)
+│   ├── node_05_calculator.py        # Cálculos determin\u00edsticos (NO IA)
+│   └── node_06_builder.py           # Construye matriz final → Gold
+│
+├── 📊 types/                         # Modelos Pydantic organizados por capa
+│   ├── base_types.py                # Tipos fundamentales (Enums, Document)
+│   ├── bronze_types.py              # Modelos para esquema Bronze
+│   ├── silver_types.py              # Modelos para esquema Silver
+│   └── gold_types.py                # Modelos para esquema Gold
+│
+├── 🔄 graphs/                        # LangGraph workflows
+│   ├── state.py                     # AgentState (estado compartido)
+│   └── gtc45_graph.py               # Grafo principal de 6 nodos
+│
+├── 🗄️ db/                            # Base de datos
+│   ├── schemas/
+│   │   ├── bronze.py                # Tablas Bronze (datos crudos)
+│   │   ├── silver.py                # Tablas Silver (datos procesados)
+│   │   └── gold.py                  # Tablas Gold (matrices finales)
+│   ├── session.py                   # Configuración SQLAlchemy
+│   └── init_schemas.sql             # Inicialización de esquemas
+│
+├── 🌐 api/                           # FastAPI endpoints
 │   └── v1/
-│       ├── ingest.py       # POST /ingest, GET /tasks/{id}
-│       ├── matrix.py        # GET /matrix/{id}, /export
-│       └── sources.py       # POST /sources/update
-├── services/               # Servicios auxiliares
-├── tasks/                  # Celery tasks
-│   ├── ingestion_tasks.py
-│   └── update_tasks.py
-├── core/                   # Configuración
-│   ├── config.py
-│   └── celery_app.py
-├── alembic/                # Migraciones de DB
-├── server.py               # FastAPI app principal
-├── sources_config.yaml     # Configuración de fuentes
-├── requirements.txt
-├── Dockerfile
-└── .env
+│       ├── ingest.py                # POST /ingest, GET /tasks/{id}
+│       ├── matrix.py                # GET /matrix/{id}, /export
+│       └── sources.py               # POST /sources/update
+│
+├── ⚙️ services/                      # Servicios auxiliares
+│   ├── document_parser.py           # Parser de PDF/Word/Excel
+│   └── (otros servicios)
+│
+├── 📦 tasks/                         # Celery tasks
+│   ├── ingestion_tasks.py           # Tarea principal de procesamiento
+│   └── update_tasks.py              # Actualización de fuentes
+│
+├── 🔧 core/                          # Configuración
+│   ├── config.py                    # Settings (Pydantic)
+│   └── celery_app.py                # Config Celery + Beat
+│
+├── 🛠️ utils/                         # Utilidades compartidas
+│
+├── 🔄 alembic/                       # Migraciones de DB
+│
+├── 📄 Archivos principales
+│   ├── server.py                    # FastAPI app
+│   ├── sources_config.yaml          # Config de fuentes normativas
+│   ├── requirements.txt
+│   ├── Dockerfile
+│   ├── .env.example
+│   ├── README.md
+│   └── ARCHITECTURE.md
+│
+└── 🐳 docker-compose.yml             # En raíz /app/
 ```
 
-## 🚀 Instalación y Ejecución
+## 🎨 Convenciones de Nomenclatura
 
-### Prerrequisitos
-- Docker y Docker Compose instalados
-- Puerto 5432 (PostgreSQL), 6379 (Redis), 8001 (API) disponibles
+### Agentes
+- **Formato**: `agent_XX_nombre_descriptivo.py`
+- **Ejemplo**: `agent_02_hazard_identifier.py`
+- **Clase**: `AgentXXNombreDescriptivo`
+- **Función nodo**: `agent_XX_nombre_node()`
 
-### Paso 1: Configurar variables de entorno
+### Prompts
+- **Formato**: `agent_XX_nombre_prompt.py`
+- **Variables**: `SYSTEM_PROMPT`, `USER_PROMPT_TEMPLATE`
+- **Función**: `get_nombre_prompt()`
 
-Crear archivo `.env` en `/app/backend/`:
+### Tipos
+- **Por capa**: `bronze_types.py`, `silver_types.py`, `gold_types.py`
+- **Base**: `base_types.py` (enums y modelos fundamentales)
 
-```bash
-# Database
-DATABASE_URL=postgresql+psycopg2://riesgo_admin:riesgo_secure_2024@postgres:5432/riesgo_ia
+## 🚀 Flujo de Datos
 
-# Redis & Celery
-REDIS_URL=redis://redis:6379/0
-CELERY_BROKER_URL=redis://redis:6379/0
-CELERY_RESULT_BACKEND=redis://redis:6379/1
+```
+1️⃣ Ingesta → Bronze
+   POST /api/v1/ingest
+   ↓
+   Celery Task iniciada
+   ↓
+   Agent_01_Extractor
+   ↓
+   Bronze: documentos_raw, textos_extraidos
 
-# AI/LLM
-EMERGENT_LLM_KEY=sk-emergent-c6dBf0c1231Fd2aE78
+2️⃣ Procesamiento → Silver
+   Agent_02_Hazard_Identifier
+   ↓
+   Silver: peligros_identificados
+   ↓
+   Agent_03_Risk_Mapper
+   ↓
+   Silver: riesgos_mapeados
+   ↓
+   Agent_04_Control_Planner
+   ↓
+   Silver: controles_planificados
 
-# App
-DEBUG=False
-CORS_ORIGINS=*
+3️⃣ Cálculo (Determinístico)
+   Node_05_Calculator
+   ↓
+   Fórmulas GTC 45 (sin IA)
+
+4️⃣ Construcción → Gold
+   Node_06_Builder
+   ↓
+   Gold: matrices_gtc45
+   ↓
+   Task SUCCESS → matriz_id
+
+5️⃣ Consulta
+   GET /api/v1/matrix/{id}
+   GET /api/v1/matrix/{id}/export
 ```
 
-### Paso 2: Levantar servicios con Docker Compose
+## 📝 Modificar Prompts
 
-Desde la raíz del proyecto (`/app/`):
+### Ejemplo: Cambiar prompt del Agent 02
 
-```bash
-docker-compose up --build
+1. Abrir `/prompts/agent_02_hazard_identifier_prompt.py`
+2. Editar `SYSTEM_PROMPT` con las instrucciones deseadas
+3. Guardar (los cambios se aplican automáticamente)
+
+```python
+SYSTEM_PROMPT = """
+Tu nueva instrucción aquí...
+"""
 ```
 
-Esto levanta:
-- **postgres**: Base de datos PostgreSQL con esquemas Bronze/Silver/Gold
-- **redis**: Broker y backend de Celery
-- **backend**: API FastAPI en `http://localhost:8001`
-- **celery_worker**: Worker para procesamiento asíncrono
-- **celery_beat**: Scheduler para tareas programadas
+**No necesitas tocar el código del agente**, solo el archivo de prompt.
 
-### Paso 3: Ejecutar migraciones (primera vez)
+## 🔧 Añadir Nuevo Agente
 
-```bash
-docker-compose exec backend alembic upgrade head
+1. Crear prompt: `/prompts/agent_05_nombre_prompt.py`
+2. Crear agente: `/agents/agent_05_nombre.py`
+3. Añadir al grafo: `/graphs/gtc45_graph.py`
+
+```python
+# En gtc45_graph.py
+from agents.agent_05_nombre import agent_05_nombre_node
+
+workflow.add_node("nombre", agent_05_nombre_node)
+workflow.add_edge("control_planner", "nombre")
+workflow.add_edge("nombre", "calculate")
 ```
-
-### Paso 4: Verificar servicios
-
-```bash
-# Health check de la API
-curl http://localhost:8001/health
-
-# Documentación interactiva
-open http://localhost:8001/api/docs
-```
-
-## 📡 Endpoints Principales
-
-### POST /api/v1/ingest
-Ingesta un documento y lanza el grafo de agentes
-
-```bash
-curl -X POST "http://localhost:8001/api/v1/ingest" \
-  -F "file=@documento.pdf" \
-  -F "empresa=Constructora XYZ Ltda"
-
-# Response
-{
-  "task_id": "abc-123-def",
-  "status": "pending",
-  "message": "Documento recibido. Procesamiento iniciado."
-}
-```
-
-### GET /api/v1/tasks/{task_id}
-Consulta estado de procesamiento
-
-```bash
-curl "http://localhost:8001/api/v1/tasks/abc-123-def"
-
-# Response
-{
-  "task_id": "abc-123-def",
-  "status": "processing",
-  "progress": {"message": "Identificando peligros..."}
-}
-```
-
-### GET /api/v1/matrix/{id}
-Obtiene matriz generada
-
-```bash
-curl "http://localhost:8001/api/v1/matrix/{matriz_id}"
-```
-
-### GET /api/v1/matrix/{id}/export
-Descarga Excel
-
-```bash
-curl "http://localhost:8001/api/v1/matrix/{matriz_id}/export" -o matriz.xlsx
-```
-
-### POST /api/v1/sources/update
-Actualiza catálogos y normativas
-
-```bash
-curl -X POST "http://localhost:8001/api/v1/sources/update"
-```
-
-## 🗄️ Esquemas de Base de Datos
-
-### Bronze Schema
-- `documentos_raw`: Documentos subidos
-- `textos_extraidos`: Texto extraído por Agent_Extractor
-
-### Silver Schema
-- `normativas_gtc45`: Normativas oficiales
-- `catalogo_peligros`: Catálogo de peligros
-- `catalogo_controles`: Catálogo de controles SST
-- `peligros_identificados`: Peligros detectados (Agent_Hazard_ID)
-- `riesgos_mapeados`: Riesgos asociados (Agent_Risk_Mapper)
-- `controles_planificados`: Controles propuestos (Agent_Control_Planner)
-
-### Gold Schema
-- `matrices_gtc45`: Matrices finales GTC 45
-- `matrices_ram`: Matrices RAM (opcional)
-- `exportaciones`: Registro de archivos generados
-
-## 🔄 Pipeline de Fuentes (Actualización Automática)
-
-Configurado en `sources_config.yaml`. Tareas programadas con Celery Beat:
-
-- **update_normativas**: 2 AM el día 1 de cada mes
-- **update_catalogos**: 3 AM todos los domingos
-- **learn_from_matrices**: 1 AM todos los días
 
 ## 🧪 Testing
 
 ```bash
-# Ejecutar tests
-docker-compose exec backend pytest
+# Ejecutar todos los tests
+pytest
+
+# Test específico de un agente
+pytest tests/test_agent_02_hazard_identifier.py
 
 # Con cobertura
-docker-compose exec backend pytest --cov=. --cov-report=html
-```
-
-## 🔍 Monitoreo
-
-### Celery Flower (opcional)
-```bash
-docker-compose exec celery_worker celery -A core.celery_app flower
-# Abrir http://localhost:5555
-```
-
-### Logs
-```bash
-# Backend API
-docker-compose logs -f backend
-
-# Celery Worker
-docker-compose logs -f celery_worker
-
-# PostgreSQL
-docker-compose logs -f postgres
+pytest --cov=agents --cov-report=html
 ```
 
 ## 📦 Dependencias Principales
 
 ```
-fastapi==0.110.1
-SQLAlchemy==2.0.29
-celery==5.3.6
-langchain==0.1.20
-langgraph==0.0.55
-psycopg2-binary==2.9.9
-redis==5.0.3
-PyMuPDF==1.24.2
-python-docx==1.1.0
-openpyxl==3.1.2
+fastapi==0.110.1          # API REST
+SQLAlchemy==2.0.29        # ORM
+celery==5.3.6             # Tareas asíncronas
+langchain==0.1.20         # Framework LLM
+langgraph==0.0.55         # Grafos de agentes
+psycopg2-binary==2.9.9    # PostgreSQL driver
+redis==5.0.3              # Broker Celery
 ```
 
-## 🛠️ Desarrollo
+## 🔍 Monitoreo y Debugging
 
-### Añadir nuevas migraciones
+### Ver logs de un agente específico
 ```bash
-docker-compose exec backend alembic revision --autogenerate -m "descripcion"
-docker-compose exec backend alembic upgrade head
+docker-compose logs -f celery_worker | grep "Agent_02"
 ```
 
-### Acceder a PostgreSQL
+### Ver estado de una tarea
+```bash
+curl http://localhost:8001/api/v1/tasks/{task_id}
+```
+
+### Inspeccionar base de datos
 ```bash
 docker-compose exec postgres psql -U riesgo_admin -d riesgo_ia
 
-# Consultar esquemas
-\dn
-
-# Ver tablas de un esquema
-\dt bronze.*
-\dt silver.*
-\dt gold.*
+\dt silver.*  # Ver tablas Silver
+SELECT * FROM silver.peligros_identificados LIMIT 5;
 ```
 
-### Acceder a Redis CLI
-```bash
-docker-compose exec redis redis-cli
+## 📚 Documentación Adicional
 
-# Ver tareas en cola
-KEYS celery*
-```
-
-## 🎯 Próximos Pasos (Fase 2)
-
-1. Implementar lógica completa de cada agente
-2. Integrar LLMs para análisis contextual
-3. Generador de Excel con formato GTC 45 completo
-4. Sistema de plantillas personalizables
-5. API de edición inline de matrices
-6. Dashboard avanzado con métricas
-7. Pipeline de actualización automática funcional
-
-## 📄 Licencia
-
-Propietario - Riesgo IA © 2024
+- `ARCHITECTURE.md` - Diagramas visuales de arquitectura
+- `sources_config.yaml` - Configuración de fuentes normativas
+- API Docs: `http://localhost:8001/api/docs`
 
 ---
 
-**Arquitectura**: Multi-Agente con LangGraph + Medallón (Bronze/Silver/Gold)  
-**Stack**: FastAPI + PostgreSQL + Celery + Redis + LangChain  
-**Versión**: 1.0.0 (Fase 1 - Infraestructura base)
+**Versión**: 1.0.0 - Fase 1 (Infraestructura base completada)  
+**Arquitectura**: Multi-Agente LangGraph + Medallón PostgreSQL  
+**Última actualización**: 2024

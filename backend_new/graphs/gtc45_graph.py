@@ -1,36 +1,52 @@
-"""LangGraph - Grafo principal GTC 45
+"""LangGraph - Grafo Principal GTC 45
 
 Define el flujo de agentes para procesamiento de documentos
+Arquitectura multi-agente con LangGraph
 """
 
 from langgraph.graph import StateGraph, END
-from graphs.state import AgentState, TaskStatus
+from graphs.state import AgentState
 import logging
+
+# Importar agentes con nombres descriptivos
+from agents.agent_01_extractor import agent_01_extractor_node
+from agents.agent_02_hazard_identifier import agent_02_hazard_identifier_node
+from agents.agent_03_risk_mapper import agent_03_risk_mapper_node
+from agents.agent_04_control_planner import agent_04_control_planner_node
+from agents.node_05_calculator import node_05_calculator
+from agents.node_06_builder import node_06_builder
 
 logger = logging.getLogger(__name__)
 
 def create_gtc45_graph() -> StateGraph:
     """Crea el grafo de procesamiento GTC 45
     
-    Flujo:
-    START -> extract -> identify_hazards -> map_risks -> plan_controls -> calculate -> build -> END
+    Flujo secuencial:
+    START 
+      → Agent_01_Extractor (extrae texto)
+      → Agent_02_Hazard_Identifier (identifica peligros)
+      → Agent_03_Risk_Mapper (mapea riesgos)
+      → Agent_04_Control_Planner (planifica controles)
+      → Node_05_Calculator (cálculos determinísticos)
+      → Node_06_Builder (construye matriz final)
+      → END
     
     Returns:
-        StateGraph configurado
+        StateGraph compilado y listo para ejecutar
     """
     
     # Crear grafo
     workflow = StateGraph(AgentState)
     
-    # Añadir nodos (TODO: Implementar cada agente)
-    workflow.add_node("extract", agent_extractor_node)
-    workflow.add_node("identify_hazards", agent_hazard_id_node)
-    workflow.add_node("map_risks", agent_risk_mapper_node)
-    workflow.add_node("plan_controls", agent_control_planner_node)
-    workflow.add_node("calculate", node_calculator)
-    workflow.add_node("build", node_builder)
+    # Añadir nodos con nombres descriptivos
+    workflow.add_node("extract", agent_01_extractor_node)
+    workflow.add_node("identify_hazards", agent_02_hazard_identifier_node)
+    workflow.add_node("map_risks", agent_03_risk_mapper_node)
+    workflow.add_node("plan_controls", agent_04_control_planner_node)
+    workflow.add_node("calculate", node_05_calculator)
+    workflow.add_node("build", node_06_builder)
     
-    # Definir flujo
+    # Definir flujo secuencial
     workflow.set_entry_point("extract")
     workflow.add_edge("extract", "identify_hazards")
     workflow.add_edge("identify_hazards", "map_risks")
@@ -39,102 +55,32 @@ def create_gtc45_graph() -> StateGraph:
     workflow.add_edge("calculate", "build")
     workflow.add_edge("build", END)
     
+    logger.info("Grafo GTC 45 creado con 6 nodos")
+    
     return workflow.compile()
-
-# ==================== Nodos (Placeholders) ====================
-
-def agent_extractor_node(state: AgentState) -> AgentState:
-    """Agent_Extractor: Extrae texto del documento"""
-    logger.info(f"[{state.task_id}] Ejecutando Agent_Extractor...")
-    state.update_status(TaskStatus.EXTRACTING)
-    state.add_log("Extrayendo texto del documento...")
-    
-    # TODO: Implementar extracción real
-    # from agents.agent_extractor import extract_text
-    # state = extract_text(state, file_data)
-    
-    return state
-
-def agent_hazard_id_node(state: AgentState) -> AgentState:
-    """Agent_Hazard_ID: Identifica peligros"""
-    logger.info(f"[{state.task_id}] Ejecutando Agent_Hazard_ID...")
-    state.update_status(TaskStatus.IDENTIFYING_HAZARDS)
-    state.add_log("Identificando peligros...")
-    
-    # TODO: Implementar identificación
-    # from agents.agent_hazard_id import identify_hazards
-    # state = identify_hazards(state)
-    
-    return state
-
-def agent_risk_mapper_node(state: AgentState) -> AgentState:
-    """Agent_Risk_Mapper: Mapea riesgos"""
-    logger.info(f"[{state.task_id}] Ejecutando Agent_Risk_Mapper...")
-    state.update_status(TaskStatus.MAPPING_RISKS)
-    state.add_log("Mapeando riesgos...")
-    
-    # TODO: Implementar mapeo
-    # from agents.agent_risk_mapper import map_risks
-    # state = map_risks(state)
-    
-    return state
-
-def agent_control_planner_node(state: AgentState) -> AgentState:
-    """Agent_Control_Planner: Planifica controles"""
-    logger.info(f"[{state.task_id}] Ejecutando Agent_Control_Planner...")
-    state.update_status(TaskStatus.PLANNING_CONTROLS)
-    state.add_log("Planificando controles...")
-    
-    # TODO: Implementar planificación
-    # from agents.agent_control_planner import plan_controls
-    # state = plan_controls(state)
-    
-    return state
-
-def node_calculator(state: AgentState) -> AgentState:
-    """Node_Calculator: Cálculos determinísticos (NO IA)"""
-    logger.info(f"[{state.task_id}] Ejecutando Node_Calculator...")
-    state.update_status(TaskStatus.CALCULATING)
-    state.add_log("Calculando niveles de riesgo (GTC 45)...")
-    
-    # TODO: Implementar cálculos
-    # from agents.node_calculator import calculate_risks
-    # state = calculate_risks(state)
-    
-    return state
-
-def node_builder(state: AgentState) -> AgentState:
-    """Node_Builder: Construye matriz final en Gold"""
-    logger.info(f"[{state.task_id}] Ejecutando Node_Builder...")
-    state.update_status(TaskStatus.BUILDING)
-    state.add_log("Construyendo matriz final...")
-    
-    # TODO: Implementar construcción
-    # from agents.node_builder import build_matrix
-    # state = build_matrix(state)
-    
-    state.update_status(TaskStatus.COMPLETED)
-    state.add_log("Matriz completada exitosamente")
-    
-    return state
 
 def execute_graph(graph: StateGraph, initial_state: AgentState, file_data: bytes) -> AgentState:
     """Ejecuta el grafo con el estado inicial
     
     Args:
         graph: Grafo compilado
-        initial_state: Estado inicial
-        file_data: Datos del archivo
+        initial_state: Estado inicial con documento
+        file_data: Bytes del archivo
         
     Returns:
         Estado final después de ejecutar todos los nodos
     """
     try:
-        # Ejecutar grafo
+        logger.info(f"[{initial_state.task_id}] Ejecutando grafo...")
+        
+        # Ejecutar grafo (pasando file_data al primer nodo)
+        # TODO: Pasar file_data correctamente al nodo de extracción
         final_state = graph.invoke(initial_state)
+        
+        logger.info(f"[{initial_state.task_id}] Grafo completado")
         return final_state
         
     except Exception as e:
-        logger.error(f"Error ejecutando grafo: {str(e)}", exc_info=True)
-        initial_state.add_error(str(e))
+        logger.error(f"[{initial_state.task_id}] Error ejecutando grafo: {str(e)}", exc_info=True)
+        initial_state.add_error(f"Error en grafo: {str(e)}")
         return initial_state
