@@ -1,0 +1,120 @@
+# Sources Configuration for Riesgo IA
+# Pipeline de actualización automática de fuentes normativas
+
+sources:
+  # Normativas y guías oficiales
+  normativas:
+    - name: "GTC 45 Oficial"
+      type: "pdf"
+      url: "http://132.255.23.82/sipnvo/normatividad/GTC_45_DE_2012.pdf"
+      frequency: "monthly"
+      schema_target: "silver"
+      table: "normativas_gtc45"
+      enabled: true
+      
+    - name: "Decreto 1072 SST"
+      type: "web_scrape"
+      url: "https://www.mintrabajo.gov.co/relaciones-laborales/reglamentos-del-trabajo-sgsst"
+      frequency: "monthly"
+      schema_target: "silver"
+      table: "normativas_decretos"
+      enabled: true
+
+  # Catálogos de peligros y riesgos
+  catalogos:
+    - name: "Catálogo Peligros Físicos"
+      type: "json"
+      source: "local"
+      path: "./data/catalogos/peligros_fisicos.json"
+      frequency: "on_demand"
+      schema_target: "silver"
+      table: "catalogo_peligros"
+      enabled: true
+      
+    - name: "Catálogo Peligros Químicos"
+      type: "json"
+      source: "local"
+      path: "./data/catalogos/peligros_quimicos.json"
+      frequency: "on_demand"
+      schema_target: "silver"
+      table: "catalogo_peligros"
+      enabled: true
+      
+    - name: "Catálogo Controles SST"
+      type: "json"
+      source: "local"
+      path: "./data/catalogos/controles_sst.json"
+      frequency: "weekly"
+      schema_target: "silver"
+      table: "catalogo_controles"
+      enabled: true
+
+  # APIs externas
+  apis:
+    - name: "Ministerio del Trabajo API"
+      type: "api"
+      base_url: "https://api.mintrabajo.gov.co/v1"
+      endpoints:
+        - "/normativas/sst"
+        - "/actualizaciones/gtc45"
+      frequency: "weekly"
+      schema_target: "silver"
+      table: "api_mintrabajo"
+      enabled: false
+      auth_required: true
+      
+    - name: "ARL Positiva Knowledge Base"
+      type: "web_scrape"
+      url: "https://posipedia.com.co"
+      frequency: "monthly"
+      schema_target: "silver"
+      table: "arl_knowledge"
+      enabled: true
+
+  # Bases de conocimiento internas
+  knowledge_bases:
+    - name: "Matrices Previas (Aprendizaje)"
+      type: "internal"
+      source: "gold.matrices_gtc45"
+      frequency: "daily"
+      schema_target: "silver"
+      table: "patterns_learned"
+      enabled: true
+      description: "Extrae patrones de matrices anteriores para mejorar sugerencias"
+
+# Configuración del scheduler
+scheduler:
+  enabled: true
+  timezone: "America/Bogota"
+  
+  # Tareas programadas
+  tasks:
+    - name: "update_normativas"
+      schedule: "0 2 1 * *"  # 2 AM el día 1 de cada mes
+      sources: ["normativas"]
+      
+    - name: "update_catalogos"
+      schedule: "0 3 * * 0"  # 3 AM todos los domingos
+      sources: ["catalogos"]
+      
+    - name: "update_apis"
+      schedule: "0 4 * * 1"  # 4 AM todos los lunes
+      sources: ["apis"]
+      
+    - name: "learn_from_matrices"
+      schedule: "0 1 * * *"  # 1 AM todos los días
+      sources: ["knowledge_bases"]
+
+# Configuración de notificaciones
+notifications:
+  email:
+    enabled: false
+    recipients: ["admin@empresa.com"]
+    on_error: true
+    on_success: false
+  
+  slack:
+    enabled: false
+    webhook_url: "${SLACK_WEBHOOK_URL}"
+    on_error: true
+    on_success: false

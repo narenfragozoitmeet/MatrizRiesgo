@@ -1,0 +1,107 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: riesgo_ia_postgres
+    environment:
+      POSTGRES_DB: riesgo_ia
+      POSTGRES_USER: riesgo_admin
+      POSTGRES_PASSWORD: riesgo_secure_2024
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/db/init_schemas.sql:/docker-entrypoint-initdb.d/init_schemas.sql
+    networks:
+      - riesgo_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U riesgo_admin -d riesgo_ia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: riesgo_ia_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - riesgo_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: riesgo_ia_backend
+    command: uvicorn server:app --host 0.0.0.0 --port 8001 --reload
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql+psycopg2://riesgo_admin:riesgo_secure_2024@postgres:5432/riesgo_ia
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      EMERGENT_LLM_KEY: ${EMERGENT_LLM_KEY:-sk-emergent-c6dBf0c1231Fd2aE78}
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - riesgo_network
+
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: riesgo_ia_worker
+    command: celery -A core.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      DATABASE_URL: postgresql+psycopg2://riesgo_admin:riesgo_secure_2024@postgres:5432/riesgo_ia
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      EMERGENT_LLM_KEY: ${EMERGENT_LLM_KEY:-sk-emergent-c6dBf0c1231Fd2aE78}
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    networks:
+      - riesgo_network
+
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: riesgo_ia_beat
+    command: celery -A core.celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+psycopg2://riesgo_admin:riesgo_secure_2024@postgres:5432/riesgo_ia
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    networks:
+      - riesgo_network
+
+volumes:
+  postgres_data:
+
+networks:
+  riesgo_network:
+    driver: bridge
