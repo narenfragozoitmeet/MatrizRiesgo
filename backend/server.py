@@ -1,370 +1,64 @@
-from fastapi import FastAPI, APIRouter, UploadFile, File, HTTPException
-from fastapi.responses import Response
-from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
+"""FastAPI Server - Riesgo IA Backend
+
+API REST para sistema multi-agente de matrices de riesgos GTC 45 y RAM
+"""
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from core.config import settings
+from api.v1 import ingest, matrix, sources
 import logging
-from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
-import uuid
-from datetime import datetime, timezone
-import requests
-import json
-from io import BytesIO
 
-from services.storage_service import init_storage, put_object, get_object
-from services.document_parser import parse_document
-from services.risk_analyzer import analyze_document_for_risks
-from services.excel_generator import generate_risk_matrix_excel
-from services.gtc45_analyzer import analizar_documento_gtc45
-from services.gtc45_excel_generator import generar_excel_gtc45
-from models.gtc45_models import MatrizGTC45, RiesgoGTC45
-
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
-
-mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
-
-app = FastAPI()
-api_router = APIRouter(prefix="/api")
-
-class DocumentUploadResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str
-    original_filename: str
-    storage_path: str
-    content_type: str
-    size: int
-    uploaded_at: str
-
-class RiskItem(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    categoria: str
-    riesgo: str
-    descripcion: str
-    probabilidad: str
-    impacto: str
-    nivel_riesgo: str
-    mitigacion: str
-
-class AnalysisResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str
-    document_id: str
-    document_name: str
-    risks: List[RiskItem]
-    summary: str
-    total_risks: int
-    created_at: str
-    status: str
-
-class AnalysisListItem(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str
-    document_name: str
-    total_risks: int
-    created_at: str
-    status: str
-
-@api_router.get("/")
-async def root():
-    return {"message": "Riesgo IA - API GTC 45:2012", "version": "2.0", "metodologia": "GTC 45:2012"}
-
-@api_router.post("/upload", response_model=DocumentUploadResponse)
-async def upload_document(file: UploadFile = File(...)):
-    """Upload a document (PDF, Word, or Excel)"""
-    try:
-        allowed_types = [
-            'application/pdf',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-excel'
-        ]
-        
-        if file.content_type not in allowed_types:
-            raise HTTPException(status_code=400, detail="Tipo de archivo no soportado. Use PDF, Word o Excel.")
-        
-        ext = file.filename.split(".")[-1] if "." in file.filename else "bin"
-        doc_id = str(uuid.uuid4())
-        path = f"risk-matrix/uploads/{doc_id}.{ext}"
-        data = await file.read()
-        
-        result = put_object(path, data, file.content_type or "application/octet-stream")
-        
-        doc_record = {
-            "id": doc_id,
-            "storage_path": result["path"],
-            "original_filename": file.filename,
-            "content_type": file.content_type,
-            "size": result["size"],
-            "uploaded_at": datetime.now(timezone.utc).isoformat()
-        }
-        
-        await db.documents.insert_one(doc_record)
-        
-        return DocumentUploadResponse(**doc_record)
-    except HTTPException:
-        raise  # Re-raise HTTPExceptions as-is
-    except Exception as e:
-        logger.error(f"Error uploading document: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.post("/analyze/{document_id}", response_model=AnalysisResponse)
-async def analyze_document(document_id: str):
-    """Analyze uploaded document and generate risk matrix"""
-    try:
-        doc = await db.documents.find_one({"id": document_id}, {"_id": 0})
-        if not doc:
-            raise HTTPException(status_code=404, detail="Documento no encontrado")
-        
-        data, content_type = get_object(doc["storage_path"])
-        
-        text_content = parse_document(data, doc["content_type"], doc["original_filename"])
-        
-        risks, summary = await analyze_document_for_risks(text_content, doc["original_filename"])
-        
-        analysis_id = str(uuid.uuid4())
-        analysis_record = {
-            "id": analysis_id,
-            "document_id": document_id,
-            "document_name": doc["original_filename"],
-            "risks": [r.dict() for r in risks],
-            "summary": summary,
-            "total_risks": len(risks),
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "status": "completed"
-        }
-        
-        await db.analyses.insert_one(analysis_record)
-        
-        return AnalysisResponse(**analysis_record)
-    except Exception as e:
-        logger.error(f"Error analyzing document: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/analysis/{analysis_id}", response_model=AnalysisResponse)
-async def get_analysis(analysis_id: str):
-    """Get analysis results by ID"""
-    analysis = await db.analyses.find_one({"id": analysis_id}, {"_id": 0})
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Análisis no encontrado")
-    
-    risks = [RiskItem(**r) for r in analysis["risks"]]
-    analysis["risks"] = risks
-    return AnalysisResponse(**analysis)
-
-@api_router.get("/download/{analysis_id}")
-async def download_excel(analysis_id: str):
-    """Download risk matrix as Excel file"""
-    try:
-        analysis = await db.analyses.find_one({"id": analysis_id}, {"_id": 0})
-        if not analysis:
-            raise HTTPException(status_code=404, detail="Análisis no encontrado")
-        
-        risks = [RiskItem(**r) for r in analysis["risks"]]
-        
-        excel_data = generate_risk_matrix_excel(
-            risks=risks,
-            document_name=analysis["document_name"],
-            summary=analysis["summary"]
-        )
-        
-        filename = f"matriz_riesgos_{analysis['document_name'].rsplit('.', 1)[0]}.xlsx"
-        
-        return Response(
-            content=excel_data,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-    except HTTPException:
-        raise  # Re-raise HTTPExceptions as-is
-    except Exception as e:
-        logger.error(f"Error generating Excel: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/analyses", response_model=List[AnalysisListItem])
-async def list_analyses():
-    """List all analyses"""
-    analyses = await db.analyses.find({}, {"_id": 0, "id": 1, "document_name": 1, "total_risks": 1, "created_at": 1, "status": 1}).sort("created_at", -1).to_list(100)
-    return [AnalysisListItem(**a) for a in analyses]
-
-# ============= NUEVOS ENDPOINTS GTC 45 =============
-
-@api_router.post("/gtc45/analyze/{document_id}")
-async def analyze_gtc45(document_id: str, empresa: str = "Empresa"):
-    """Analiza documento con metodología GTC 45:2012"""
-    try:
-        doc = await db.documents.find_one({"id": document_id}, {"_id": 0})
-        if not doc:
-            raise HTTPException(status_code=404, detail="Documento no encontrado")
-        
-        data, content_type = get_object(doc["storage_path"])
-        text_content = parse_document(data, doc["content_type"], doc["original_filename"])
-        
-        matriz = await analizar_documento_gtc45(text_content, doc["original_filename"], empresa)
-        
-        # Guardar matriz en base de datos
-        matriz_dict = matriz.model_dump()
-        await db.matrices_gtc45.insert_one(matriz_dict)
-        
-        return matriz
-        
-    except Exception as e:
-        logger.error(f"Error analyzing GTC45: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/gtc45/matriz/{matriz_id}")
-async def get_matriz_gtc45(matriz_id: str):
-    """Obtiene matriz GTC 45 por ID"""
-    matriz = await db.matrices_gtc45.find_one({"id": matriz_id}, {"_id": 0})
-    if not matriz:
-        raise HTTPException(status_code=404, detail="Matriz no encontrada")
-    return MatrizGTC45(**matriz)
-
-@api_router.get("/gtc45/download/{matriz_id}")
-async def download_gtc45_excel(matriz_id: str):
-    """Descarga matriz GTC 45 en formato Excel"""
-    try:
-        matriz_dict = await db.matrices_gtc45.find_one({"id": matriz_id}, {"_id": 0})
-        if not matriz_dict:
-            raise HTTPException(status_code=404, detail="Matriz no encontrada")
-        
-        matriz = MatrizGTC45(**matriz_dict)
-        excel_data = generar_excel_gtc45(matriz)
-        
-        filename = f"matriz_gtc45_{matriz.nombre_empresa}_{datetime.now().strftime('%Y%m%d')}.xlsx"
-        
-        return Response(
-            content=excel_data,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
-        )
-    except Exception as e:
-        logger.error(f"Error generating GTC45 Excel: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@api_router.get("/gtc45/matrices")
-async def list_matrices_gtc45():
-    """Lista todas las matrices GTC 45"""
-    matrices = await db.matrices_gtc45.find(
-        {}, 
-        {"_id": 0, "id": 1, "nombre_empresa": 1, "documento_origen": 1, "fecha_elaboracion": 1, "estadisticas": 1}
-    ).sort("fecha_elaboracion", -1).to_list(100)
-    return matrices
-
-@api_router.get("/gtc45/dashboard/stats")
-async def get_dashboard_stats():
-    """Obtiene estadísticas para el dashboard"""
-    total_matrices = await db.matrices_gtc45.count_documents({})
-    
-    # Agregación para obtener estadísticas globales
-    pipeline = [
-        {"$project": {
-            "total_riesgos": "$estadisticas.total_riesgos",
-            "criticos": "$estadisticas.criticos",
-            "altos": "$estadisticas.altos",
-            "medios": "$estadisticas.medios",
-            "bajos": "$estadisticas.bajos",
-            "por_clasificacion": "$estadisticas.por_clasificacion"
-        }}
-    ]
-    
-    matrices = await db.matrices_gtc45.aggregate(pipeline).to_list(None)
-    
-    total_riesgos = sum(m.get("total_riesgos", 0) for m in matrices)
-    total_criticos = sum(m.get("criticos", 0) for m in matrices)
-    total_altos = sum(m.get("altos", 0) for m in matrices)
-    total_medios = sum(m.get("medios", 0) for m in matrices)
-    total_bajos = sum(m.get("bajos", 0) for m in matrices)
-    
-    # Clasificaciones más comunes
-    clasificaciones = {}
-    for m in matrices:
-        for clas, cant in m.get("por_clasificacion", {}).items():
-            clasificaciones[clas] = clasificaciones.get(clas, 0) + cant
-    
-    return {
-        "total_matrices": total_matrices,
-        "total_riesgos": total_riesgos,
-        "por_nivel": {
-            "criticos": total_criticos,
-            "altos": total_altos,
-            "medios": total_medios,
-            "bajos": total_bajos
-        },
-        "por_clasificacion": clasificaciones,
-        "nivel_mas_frecuente": "I" if total_criticos > max(total_altos, total_medios, total_bajos) else 
-                               "II" if total_altos > max(total_medios, total_bajos) else 
-                               "III" if total_medios > total_bajos else "IV"
-    }
-
-@api_router.put("/gtc45/riesgo/{matriz_id}/{riesgo_id}")
-async def update_riesgo(matriz_id: str, riesgo_id: str, riesgo_actualizado: dict):
-    """Actualiza un riesgo específico en la matriz (editor inline)"""
-    try:
-        matriz_dict = await db.matrices_gtc45.find_one({"id": matriz_id}, {"_id": 0})
-        if not matriz_dict:
-            raise HTTPException(status_code=404, detail="Matriz no encontrada")
-        
-        # Buscar y actualizar el riesgo específico
-        riesgos = matriz_dict.get("riesgos", [])
-        riesgo_encontrado = False
-        
-        for i, riesgo in enumerate(riesgos):
-            if riesgo.get("id") == riesgo_id:
-                # Actualizar campos permitidos
-                if "valoracion" in riesgo_actualizado:
-                    riesgos[i]["valoracion"].update(riesgo_actualizado["valoracion"])
-                if "controles_recomendados" in riesgo_actualizado:
-                    riesgos[i]["controles_recomendados"] = riesgo_actualizado["controles_recomendados"]
-                riesgo_encontrado = True
-                break
-        
-        if not riesgo_encontrado:
-            raise HTTPException(status_code=404, detail="Riesgo no encontrado")
-        
-        # Actualizar en base de datos
-        matriz_dict["fecha_actualizacion"] = datetime.now(timezone.utc).isoformat()
-        await db.matrices_gtc45.update_one(
-            {"id": matriz_id},
-            {"$set": {"riesgos": riesgos, "fecha_actualizacion": matriz_dict["fecha_actualizacion"]}}
-        )
-        
-        return {"status": "updated", "riesgo_id": riesgo_id}
-        
-    except Exception as e:
-        logger.error(f"Error updating riesgo: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-app.include_router(api_router)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
+# Configurar logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
 
+# Crear app
+app = FastAPI(
+    title=settings.APP_NAME,
+    version=settings.VERSION,
+    description="Sistema multi-agente para generación automática de matrices de riesgos SST",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc"
+)
+
+# CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS.split(","),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Incluir routers
+app.include_router(ingest.router, prefix="/api/v1", tags=["Ingestion"])
+app.include_router(matrix.router, prefix="/api/v1", tags=["Matrix"])
+app.include_router(sources.router, prefix="/api/v1", tags=["Sources"])
+
+@app.get("/")
+async def root():
+    return {
+        "app": settings.APP_NAME,
+        "version": settings.VERSION,
+        "status": "running",
+        "arquitectura": "Multi-Agente LangGraph + Medallón (Bronze/Silver/Gold)"
+    }
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy"}
+
 @app.on_event("startup")
-async def startup():
-    try:
-        init_storage()
-        logger.info("Storage initialized successfully")
-    except Exception as e:
-        logger.error(f"Storage initialization failed: {e}")
+async def startup_event():
+    logger.info(f"{settings.APP_NAME} v{settings.VERSION} iniciado")
+    logger.info("Arquitectura: Multi-Agente con LangGraph")
+    logger.info("Base de datos: PostgreSQL (Bronze/Silver/Gold)")
+    logger.info("Cola de tareas: Celery + Redis")
 
 @app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+async def shutdown_event():
+    logger.info("Apagando servidor...")

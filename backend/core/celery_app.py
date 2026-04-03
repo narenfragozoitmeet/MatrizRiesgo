@@ -43,6 +43,10 @@ celery_app.conf.beat_schedule = {
         "task": "tasks.update_tasks.learn_from_matrices",
         "schedule": crontab(hour="1", minute="0"),  # 1 AM todos los días
     },
+    "ingest-to-knowledge-base-daily": {
+        "task": "tasks.update_tasks.ingest_to_knowledge_base",
+        "schedule": crontab(hour="1", minute="30"),  # 1:30 AM todos los días (después de learn)
+    },
 }
 
 if __name__ == "__main__":
