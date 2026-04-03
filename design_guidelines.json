@@ -1,0 +1,120 @@
+{
+  "theme": "light",
+  "archetype": "4 (Swiss & High-Contrast)",
+  "domain": "Legal, Business & Finance",
+  "colors": {
+    "background": {
+      "primary": "#FFFFFF",
+      "secondary": "#FAFAFA",
+      "tertiary": "#F4F4F5"
+    },
+    "text": {
+      "primary": "#09090B",
+      "secondary": "#52525B",
+      "muted": "#71717A"
+    },
+    "brand": {
+      "primary": "#002FA7",
+      "primary_hover": "#002685",
+      "secondary": "#09090B"
+    },
+    "semantic": {
+      "success": "#16A34A",
+      "warning": "#EAB308",
+      "danger": "#DC2626",
+      "info": "#002FA7"
+    },
+    "border": {
+      "default": "#E4E4E7",
+      "focus": "#002FA7"
+    }
+  },
+  "typography": {
+    "font_family": {
+      "heading": "Cabinet Grotesk, sans-serif",
+      "body": "IBM Plex Sans, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "sizes": {
+      "h1": "text-4xl sm:text-5xl lg:text-6xl tracking-tighter font-black",
+      "h2": "text-2xl sm:text-3xl lg:text-4xl tracking-tight font-bold",
+      "h3": "text-xl sm:text-2xl font-bold",
+      "h4": "text-lg sm:text-xl font-semibold",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm uppercase tracking-[0.2em] font-medium"
+    }
+  },
+  "spacing_and_layout": {
+    "container": "max-w-7xl mx-auto px-6 sm:px-8 lg:px-12",
+    "section_gap": "gap-12 md:gap-24",
+    "padding": "p-6 md:p-12",
+    "grid_bento": "grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+    "radius": "rounded-none",
+    "shadows": {
+      "subtle": "shadow-[0_4px_24px_rgba(0,0,0,0.04)]",
+      "heavy": "shadow-[8px_8px_0px_rgba(0,0,0,1)]",
+      "focus": "ring-2 ring-offset-2 ring-[#002FA7]"
+    }
+  },
+  "components": {
+    "button": {
+      "primary": "bg-[#0A0A0A] text-white hover:bg-[#002FA7] font-semibold uppercase tracking-widest text-sm py-4 px-8 rounded-none transition-colors border border-transparent hover:border-[#002FA7]",
+      "secondary": "bg-transparent text-[#0A0A0A] border-2 border-[#0A0A0A] hover:bg-[#F4F4F5] font-semibold uppercase tracking-widest text-sm py-4 px-8 rounded-none transition-colors",
+      "ghost": "bg-transparent text-[#52525B] hover:text-[#0A0A0A] hover:bg-[#F4F4F5] font-medium text-sm py-2 px-4 rounded-none transition-colors"
+    },
+    "card": {
+      "default": "bg-white border-2 border-[#E4E4E7] p-8 rounded-none transition-all hover:border-[#0A0A0A] hover:shadow-[8px_8px_0px_rgba(0,0,0,1)]"
+    },
+    "input": {
+      "default": "bg-[#FAFAFA] border-2 border-[#E4E4E7] text-[#09090B] placeholder:text-[#A1A1AA] rounded-none px-4 py-3 focus:outline-none focus:border-[#002FA7] focus:ring-0 transition-colors"
+    },
+    "upload_zone": {
+      "default": "border-2 border-dashed border-[#E4E4E7] bg-[#FAFAFA] hover:border-[#002FA7] hover:bg-[#F0F4FF] transition-all flex flex-col items-center justify-center p-16 text-center cursor-pointer min-h-[300px]"
+    },
+    "badge": {
+      "high_risk": "bg-[#DC2626] text-white px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-none",
+      "medium_risk": "bg-[#EAB308] text-black px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-none",
+      "low_risk": "bg-[#16A34A] text-white px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-none"
+    },
+    "table": {
+      "container": "w-full border-collapse text-left",
+      "header": "bg-[#FAFAFA] border-b-2 border-[#0A0A0A] text-[#0A0A0A] font-semibold p-4",
+      "row": "border-b border-[#E4E4E7] hover:bg-[#FAFAFA] transition-colors",
+      "cell": "p-4 text-[#52525B]"
+    }
+  },
+  "motion": {
+    "hover": "transition-all duration-300 ease-out",
+    "entrance": "animate-in fade-in slide-in-from-bottom-4 duration-500",
+    "pulse_loading": "animate-pulse"
+  },
+  "icons": {
+    "library": "lucide-react",
+    "stroke_width": 1.5,
+    "size": "w-5 h-5"
+  },
+  "media": {
+    "images": [
+      {
+        "url": "https://images.unsplash.com/photo-1758518731462-d091b0b4ed0d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwxfHxjb3Jwb3JhdGUlMjBsZWdhbCUyMG9mZmljZXxlbnwwfHx8fDE3NzUyMzY2Nzl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Business people signing a contract at a table.",
+        "category": "hero_background"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1747037632512-3bea94e6e618?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxkb2N1bWVudCUyMGFuYWx5c2lzfGVufDB8fHx8MTc3NTIzNjY3OXww&ixlib=rb-4.1.0&q=85",
+        "description": "Miniature houses and notes on a dark table.",
+        "category": "analysis_illustration"
+      }
+    ],
+    "logos": []
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the Swiss Brutalist styling: use the Cabinet Grotesk font for bold, high-contrast headings and JetBrains Mono for technical data points.",
+    "Use solid 2px borders with heavy drop-shadows (e.g., shadow-[8px_8px_0px_rgba(0,0,0,1)]) for interactive cards to mimic high-end technical brutalism.",
+    "Implement the Upload Zone as a massive, central component emphasizing drag-and-drop mechanics with a dashed border that reacts dynamically on hover.",
+    "The Risk Matrix Table must have extreme data density, 2px solid bottom borders for headers, and clean typography mapping colors (Red/Yellow/Green) strictly to Risk Badges.",
+    "Ensure all buttons use the uppercase tracking-widest font-bold style with rounded-none (sharp corners).",
+    "For the Processing Status Display, design a clean deterministic progress bar or an analytical step-by-step terminal readout rather than a simple spinning icon.",
+    "Make sure every interactive element includes a 'data-testid' attribute for testing."
+  ]
+}
