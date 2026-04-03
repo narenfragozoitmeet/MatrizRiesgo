@@ -18,6 +18,9 @@ from services.storage_service import init_storage, put_object, get_object
 from services.document_parser import parse_document
 from services.risk_analyzer import analyze_document_for_risks
 from services.excel_generator import generate_risk_matrix_excel
+from services.gtc45_analyzer import analizar_documento_gtc45
+from services.gtc45_excel_generator import generar_excel_gtc45
+from models.gtc45_models import MatrizGTC45, RiesgoGTC45
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -69,7 +72,7 @@ class AnalysisListItem(BaseModel):
 
 @api_router.get("/")
 async def root():
-    return {"message": "API de Matriz de Riesgos Legales"}
+    return {"message": "Riesgo IA - API GTC 45:2012", "version": "2.0", "metodologia": "GTC 45:2012"}
 
 @api_router.post("/upload", response_model=DocumentUploadResponse)
 async def upload_document(file: UploadFile = File(...)):
@@ -189,6 +192,154 @@ async def list_analyses():
     """List all analyses"""
     analyses = await db.analyses.find({}, {"_id": 0, "id": 1, "document_name": 1, "total_risks": 1, "created_at": 1, "status": 1}).sort("created_at", -1).to_list(100)
     return [AnalysisListItem(**a) for a in analyses]
+
+# ============= NUEVOS ENDPOINTS GTC 45 =============
+
+@api_router.post("/gtc45/analyze/{document_id}")
+async def analyze_gtc45(document_id: str, empresa: str = "Empresa"):
+    """Analiza documento con metodología GTC 45:2012"""
+    try:
+        doc = await db.documents.find_one({"id": document_id}, {"_id": 0})
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento no encontrado")
+        
+        data, content_type = get_object(doc["storage_path"])
+        text_content = parse_document(data, doc["content_type"], doc["original_filename"])
+        
+        matriz = await analizar_documento_gtc45(text_content, doc["original_filename"], empresa)
+        
+        # Guardar matriz en base de datos
+        matriz_dict = matriz.model_dump()
+        await db.matrices_gtc45.insert_one(matriz_dict)
+        
+        return matriz
+        
+    except Exception as e:
+        logger.error(f"Error analyzing GTC45: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/gtc45/matriz/{matriz_id}")
+async def get_matriz_gtc45(matriz_id: str):
+    """Obtiene matriz GTC 45 por ID"""
+    matriz = await db.matrices_gtc45.find_one({"id": matriz_id}, {"_id": 0})
+    if not matriz:
+        raise HTTPException(status_code=404, detail="Matriz no encontrada")
+    return MatrizGTC45(**matriz)
+
+@api_router.get("/gtc45/download/{matriz_id}")
+async def download_gtc45_excel(matriz_id: str):
+    """Descarga matriz GTC 45 en formato Excel"""
+    try:
+        matriz_dict = await db.matrices_gtc45.find_one({"id": matriz_id}, {"_id": 0})
+        if not matriz_dict:
+            raise HTTPException(status_code=404, detail="Matriz no encontrada")
+        
+        matriz = MatrizGTC45(**matriz_dict)
+        excel_data = generar_excel_gtc45(matriz)
+        
+        filename = f"matriz_gtc45_{matriz.nombre_empresa}_{datetime.now().strftime('%Y%m%d')}.xlsx"
+        
+        return Response(
+            content=excel_data,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={filename}"}
+        )
+    except Exception as e:
+        logger.error(f"Error generating GTC45 Excel: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/gtc45/matrices")
+async def list_matrices_gtc45():
+    """Lista todas las matrices GTC 45"""
+    matrices = await db.matrices_gtc45.find(
+        {}, 
+        {"_id": 0, "id": 1, "nombre_empresa": 1, "documento_origen": 1, "fecha_elaboracion": 1, "estadisticas": 1}
+    ).sort("fecha_elaboracion", -1).to_list(100)
+    return matrices
+
+@api_router.get("/gtc45/dashboard/stats")
+async def get_dashboard_stats():
+    """Obtiene estadísticas para el dashboard"""
+    total_matrices = await db.matrices_gtc45.count_documents({})
+    
+    # Agregación para obtener estadísticas globales
+    pipeline = [
+        {"$project": {
+            "total_riesgos": "$estadisticas.total_riesgos",
+            "criticos": "$estadisticas.criticos",
+            "altos": "$estadisticas.altos",
+            "medios": "$estadisticas.medios",
+            "bajos": "$estadisticas.bajos",
+            "por_clasificacion": "$estadisticas.por_clasificacion"
+        }}
+    ]
+    
+    matrices = await db.matrices_gtc45.aggregate(pipeline).to_list(None)
+    
+    total_riesgos = sum(m.get("total_riesgos", 0) for m in matrices)
+    total_criticos = sum(m.get("criticos", 0) for m in matrices)
+    total_altos = sum(m.get("altos", 0) for m in matrices)
+    total_medios = sum(m.get("medios", 0) for m in matrices)
+    total_bajos = sum(m.get("bajos", 0) for m in matrices)
+    
+    # Clasificaciones más comunes
+    clasificaciones = {}
+    for m in matrices:
+        for clas, cant in m.get("por_clasificacion", {}).items():
+            clasificaciones[clas] = clasificaciones.get(clas, 0) + cant
+    
+    return {
+        "total_matrices": total_matrices,
+        "total_riesgos": total_riesgos,
+        "por_nivel": {
+            "criticos": total_criticos,
+            "altos": total_altos,
+            "medios": total_medios,
+            "bajos": total_bajos
+        },
+        "por_clasificacion": clasificaciones,
+        "nivel_mas_frecuente": "I" if total_criticos > max(total_altos, total_medios, total_bajos) else 
+                               "II" if total_altos > max(total_medios, total_bajos) else 
+                               "III" if total_medios > total_bajos else "IV"
+    }
+
+@api_router.put("/gtc45/riesgo/{matriz_id}/{riesgo_id}")
+async def update_riesgo(matriz_id: str, riesgo_id: str, riesgo_actualizado: dict):
+    """Actualiza un riesgo específico en la matriz (editor inline)"""
+    try:
+        matriz_dict = await db.matrices_gtc45.find_one({"id": matriz_id}, {"_id": 0})
+        if not matriz_dict:
+            raise HTTPException(status_code=404, detail="Matriz no encontrada")
+        
+        # Buscar y actualizar el riesgo específico
+        riesgos = matriz_dict.get("riesgos", [])
+        riesgo_encontrado = False
+        
+        for i, riesgo in enumerate(riesgos):
+            if riesgo.get("id") == riesgo_id:
+                # Actualizar campos permitidos
+                if "valoracion" in riesgo_actualizado:
+                    riesgos[i]["valoracion"].update(riesgo_actualizado["valoracion"])
+                if "controles_recomendados" in riesgo_actualizado:
+                    riesgos[i]["controles_recomendados"] = riesgo_actualizado["controles_recomendados"]
+                riesgo_encontrado = True
+                break
+        
+        if not riesgo_encontrado:
+            raise HTTPException(status_code=404, detail="Riesgo no encontrado")
+        
+        # Actualizar en base de datos
+        matriz_dict["fecha_actualizacion"] = datetime.now(timezone.utc).isoformat()
+        await db.matrices_gtc45.update_one(
+            {"id": matriz_id},
+            {"$set": {"riesgos": riesgos, "fecha_actualizacion": matriz_dict["fecha_actualizacion"]}}
+        )
+        
+        return {"status": "updated", "riesgo_id": riesgo_id}
+        
+    except Exception as e:
+        logger.error(f"Error updating riesgo: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 app.include_router(api_router)
 
