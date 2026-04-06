@@ -1,14 +1,12 @@
-"""API v1 - SST Risk Matrix Generation Endpoint
+"""API v1 - SST Risk Matrix (Refactorizado con seguridad)"""
 
-Generación automática de Matrices de Riesgos SST (GTC 45 + RAM)
-"""
-
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 from typing import List
 import uuid
 import logging
+import structlog
 from datetime import datetime
 
 from db.mongodb import get_mongodb
@@ -16,8 +14,17 @@ from services.document_extractor import document_extractor
 from services.matriz_sst_processor import matriz_sst_processor
 from services.excel_generator import excel_generator
 from models.matrices import MatrizResumen, TipoMatriz
+from shared.validators import DocumentValidator, TextValidator
+from shared.exceptions import (
+    ValidationError,
+    DocumentExtractionError,
+    LLMProcessingError,
+    MatrizNotFoundError
+)
+from api.middleware.security import limiter
+from core.config import settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger()
 router = APIRouter()
 
 # ============================================
@@ -43,7 +50,6 @@ class MatrizResponse(BaseModel):
     metodologia: str
 
 class InfoRequisitoResponse(BaseModel):
-    """Información sobre requisitos de documentos"""
     title: str
     description: str
     document_types: List[dict]
@@ -56,11 +62,7 @@ class InfoRequisitoResponse(BaseModel):
 
 @router.get("/info-requisitos", response_model=InfoRequisitoResponse)
 async def get_info_requisitos():
-    """
-    Devuelve información sobre qué documentos necesita el sistema y su estructura
-    
-    Este endpoint se usa para el ícono (!) informativo en el frontend
-    """
+    """Información sobre documentos requeridos"""
     return InfoRequisitoResponse(
         title="Información Requerida para Matriz de Riesgos SST",
         description="El sistema analiza documentos de tu empresa para identificar peligros y valorar riesgos laborales según la metodología GTC 45 (Guía Técnica Colombiana) combinada con RAM (Risk Assessment Matrix).",
@@ -108,72 +110,74 @@ async def get_info_requisitos():
 
 
 @router.post("/ingest", response_model=IngestResponse)
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def ingest_and_generate_matrix(
+    request: Request,  # Requerido por slowapi
     file: UploadFile = File(...)
 ):
     """
     Ingesta documento y genera matriz de riesgos SST
     
-    El nombre de la empresa se extrae AUTOMÁTICAMENTE del documento
-    
-    Flujo:
-    1. Upload documento (PDF/Word/Excel)
-    2. Extracción de texto
-    3. Extracción automática del nombre de empresa
-    4. Procesamiento con agentes LLM (Gemini 2.5 Flash)
-    5. Evaluación con GTC 45 + RAM
-    6. Generación de matriz completa
-    7. Guardado en MongoDB
+    SEGURIDAD:
+    - Rate limit: {RATE_LIMIT_PER_MINUTE} requests/minuto
+    - Tamaño máximo: {MAX_FILE_SIZE_MB}MB
+    - Validación de tipo de archivo
+    - Sanitización de texto
     
     Args:
-        file: Documento PDF, Word o Excel con información de la empresa
+        file: Documento PDF, Word o Excel
     
     Returns:
-        ID de la matriz generada y nombre de empresa detectado
+        Matriz generada con ID y empresa detectada
     """
+    document_id = str(uuid.uuid4())
+    
     try:
-        # Validar tipo de archivo
-        allowed_types = [
-            'application/pdf',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-excel'
-        ]
-        
-        if file.content_type not in allowed_types:
-            raise HTTPException(
-                status_code=400,
-                detail="Tipo de archivo no soportado. Use PDF, Word (.docx) o Excel (.xlsx)"
-            )
-        
-        logger.info(f"📥 Ingesta iniciada: {file.filename}")
-        
         # 1. Leer archivo
         file_data = await file.read()
-        document_id = str(uuid.uuid4())
         
-        # 2. Extracción de texto
-        logger.info("📄 Extrayendo texto del documento...")
-        texto_extraido, tipo_doc = document_extractor.extract(
-            file_data, file.filename, file.content_type
+        logger.info(
+            "ingest_started",
+            document_id=document_id,
+            filename=file.filename,
+            content_type=file.content_type,
+            size_bytes=len(file_data)
         )
         
-        if not texto_extraido or len(texto_extraido) < 100:
-            raise HTTPException(
-                status_code=400,
-                detail="El documento no contiene suficiente texto para analizar. Asegúrate de que el documento tenga información sobre la empresa y sus actividades."
+        # 2. Validar archivo
+        DocumentValidator.validate_file(
+            filename=file.filename,
+            content_type=file.content_type,
+            file_size=len(file_data)
+        )
+        
+        # 3. Extracción de texto
+        try:
+            texto_extraido, tipo_doc = document_extractor.extract(
+                file_data, file.filename, file.content_type
+            )
+        except Exception as e:
+            raise DocumentExtractionError(
+                f"Error extrayendo texto del documento: {str(e)}"
             )
         
-        # 3. Procesamiento SST (incluye extracción de nombre empresa)
-        logger.info("🔄 Procesando matriz SST con GTC 45 + RAM...")
-        matriz = await matriz_sst_processor.procesar(
-            texto_documento=texto_extraido,
-            nombre_documento=file.filename,
-            document_id=document_id
-        )
+        # 4. Validar y sanitizar texto
+        texto_extraido = TextValidator.validate_text(texto_extraido)
+        texto_sanitizado = TextValidator.sanitize_for_llm(texto_extraido)
         
-        # 4. Guardar documento original (Bronze)
+        # 5. Procesamiento SST con LLM
+        try:
+            matriz = await matriz_sst_processor.procesar(
+                texto_documento=texto_sanitizado,
+                nombre_documento=file.filename,
+                document_id=document_id
+            )
+        except Exception as e:
+            raise LLMProcessingError(
+                f"Error procesando documento con IA: {str(e)}"
+            )
+        
+        # 6. Guardar documento original (Bronze)
         mongodb = get_mongodb()
         bronze_doc = {
             "_id": document_id,
@@ -184,15 +188,20 @@ async def ingest_and_generate_matrix(
             "created_at": datetime.now()
         }
         mongodb.documentos_bronze.insert_one(bronze_doc)
-        logger.info(f"✅ Documento guardado en Bronze: {document_id}")
         
-        # 5. Guardar matriz en MongoDB
+        # 7. Guardar matriz (Gold)
         matriz_id = str(uuid.uuid4())
         matriz_dict = matriz.model_dump()
         matriz_dict["_id"] = matriz_id
         mongodb.matrices_sst.insert_one(matriz_dict)
         
-        logger.info(f"✅ Matriz SST generada: {matriz_id} | Empresa: {matriz.empresa}")
+        logger.info(
+            "matriz_generated",
+            matriz_id=matriz_id,
+            empresa=matriz.empresa,
+            total_riesgos=matriz.total_riesgos,
+            riesgos_criticos=matriz.riesgos_criticos
+        )
         
         return IngestResponse(
             success=True,
@@ -201,27 +210,34 @@ async def ingest_and_generate_matrix(
             empresa=matriz.empresa
         )
         
-    except HTTPException:
+    except (ValidationError, DocumentExtractionError, LLMProcessingError) as e:
+        logger.warning(
+            "ingest_validation_error",
+            document_id=document_id,
+            error=str(e)
+        )
         raise
     except Exception as e:
-        logger.error(f"❌ Error en ingesta: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(
+            "ingest_unexpected_error",
+            document_id=document_id,
+            error=str(e),
+            exc_info=True
+        )
+        raise HTTPException(status_code=500, detail="Error interno del servidor")
 
 
 @router.get("/matrix/{matriz_id}", response_model=MatrizResponse)
 async def get_matriz(matriz_id: str):
-    """
-    Obtiene una matriz SST por ID
-    
-    Args:
-        matriz_id: ID de la matriz
-    """
+    """Obtiene una matriz SST por ID"""
     try:
         mongodb = get_mongodb()
         matriz_data = mongodb.matrices_sst.find_one({"_id": matriz_id})
         
         if not matriz_data:
-            raise HTTPException(status_code=404, detail="Matriz no encontrada")
+            raise MatrizNotFoundError(f"Matriz {matriz_id} no encontrada")
+        
+        logger.info("matriz_retrieved", matriz_id=matriz_id)
         
         return MatrizResponse(
             id=matriz_id,
@@ -235,50 +251,50 @@ async def get_matriz(matriz_id: str):
             created_at=matriz_data["created_at"].isoformat(),
             metodologia=matriz_data["metodologia"]
         )
-        
-    except HTTPException:
+    except MatrizNotFoundError:
         raise
     except Exception as e:
-        logger.error(f"Error obteniendo matriz: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("get_matriz_error", matriz_id=matriz_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Error obteniendo matriz")
 
 
 @router.get("/matrix/{matriz_id}/export")
-async def export_matriz(matriz_id: str):
+@limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE * 2}/minute")  # Mayor límite para exports
+async def export_matriz(request: Request, matriz_id: str):
     """
-    Exporta matriz SST a Excel con formato GTC 45
+    Exporta matriz SST a Excel
     
     Args:
         matriz_id: ID de la matriz
     
     Returns:
-        Archivo Excel (.xlsx) con matriz completa
+        Archivo Excel (.xlsx)
     """
     try:
         mongodb = get_mongodb()
-        
-        # Obtener matriz de MongoDB
         from models.matrices import MatrizSST
+        
         matriz_data = mongodb.matrices_sst.find_one({"_id": matriz_id})
         
         if not matriz_data:
-            raise HTTPException(status_code=404, detail="Matriz no encontrada")
+            raise MatrizNotFoundError(f"Matriz {matriz_id} no encontrada")
         
         matriz = MatrizSST(**matriz_data)
         excel_data = excel_generator.generar_matriz_sst(matriz)
         filename = f"matriz_sst_{matriz.empresa.replace(' ', '_')}_{matriz_id[:8]}.xlsx"
+        
+        logger.info("matriz_exported", matriz_id=matriz_id, empresa=matriz.empresa)
         
         return Response(
             content=excel_data,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={"Content-Disposition": f"attachment; filename={filename}"}
         )
-        
-    except HTTPException:
+    except MatrizNotFoundError:
         raise
     except Exception as e:
-        logger.error(f"Error exportando matriz: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("export_error", matriz_id=matriz_id, error=str(e))
+        raise HTTPException(status_code=500, detail="Error exportando matriz")
 
 
 @router.get("/matrices", response_model=List[MatrizResumen])
@@ -287,7 +303,7 @@ async def list_matrices():
     Lista todas las matrices SST generadas
     
     Returns:
-        Lista de matrices ordenadas por fecha (más recientes primero)
+        Lista de matrices (máx 100, ordenadas por fecha)
     """
     try:
         mongodb = get_mongodb()
@@ -306,8 +322,8 @@ async def list_matrices():
                 estado=m["estado"]
             ))
         
+        logger.info("matrices_listed", count=len(matrices))
         return matrices
-        
     except Exception as e:
-        logger.error(f"Error listando matrices: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("list_matrices_error", error=str(e))
+        raise HTTPException(status_code=500, detail="Error listando matrices")

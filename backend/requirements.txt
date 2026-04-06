@@ -19,6 +19,12 @@ python-docx==1.1.2
 openpyxl==3.1.5
 python-multipart==0.0.20
 
+# Security & Rate Limiting
+slowapi==0.1.9
+
+# Monitoring & Logging
+structlog==24.1.0
+
 # Utilities
 python-dotenv==1.0.1
 PyYAML==6.0.2
@@ -26,4 +32,6 @@ requests==2.32.3
 
 # Testing
 pytest==8.3.4
+pytest-asyncio==0.23.5
+pytest-cov==4.1.0
 httpx==0.28.1
