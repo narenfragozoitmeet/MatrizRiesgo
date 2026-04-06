@@ -22,6 +22,12 @@
 - [x] Logging estructurado
 - [x] Docker multi-stage
 - [x] Documentación de seguridad
+- [x] **Pipeline de Ingesta Automática** (v1.1.0)
+  - Sistema abstracto y flexible para fuentes externas
+  - Scheduler con cron expressions
+  - Almacenamiento de documentos (pending/processed/failed)
+  - API REST para gestión de pipelines
+  - Documentación completa en `docs/guides/PIPELINE_GUIDE.md`
 
 ---
 
@@ -143,7 +149,37 @@ Request → Check Cache → Hit? Return : Process + Cache → Return
 
 ### Prioridad: MEDIA
 
-#### 5. Clean Architecture Completa (1-2 semanas)
+#### 5. Implementar Fuentes de Datos Reales para Pipeline
+**Objetivo:** Conectar fuentes externas específicas al sistema de pipeline
+
+**Estado:** ⏳ Estructura lista, pendiente definir fuentes
+
+**Tasks:**
+- [ ] Definir fuentes de datos específicas (APIs, SharePoint, etc.)
+- [ ] Implementar clases concretas heredando de `DataSource`
+- [ ] Configurar credenciales y endpoints en `.env`
+- [ ] Crear schedules para cada fuente
+- [ ] Integrar con SST Service para auto-procesamiento
+- [ ] Configurar notificaciones por email/Slack en fallos
+
+**Ejemplo de fuentes a considerar:**
+- API REST de documentos corporativos
+- SharePoint/Google Drive
+- FTP/SFTP de archivos
+- Webhooks de sistemas externos
+
+**Entregables:**
+- Clases en `/backend/services/pipeline/sources/`
+- Configuración en `pipeline_config.yaml`
+- Tests de integración
+
+**Owner:** Backend Dev + Product Manager  
+**Estimación:** 20-30 horas  
+**Archivo:** `docs/guides/PIPELINE_GUIDE.md`
+
+---
+
+#### 6. Clean Architecture Completa (1-2 semanas)
 **Objetivo:** Desacoplar capas para mejor mantenibilidad
 
 **Estructura Target:**

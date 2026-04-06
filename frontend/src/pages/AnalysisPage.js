@@ -168,17 +168,15 @@ export default function AnalysisPage() {
             <Download className="w-5 h-5 text-white" strokeWidth={2} />
           </div>
           <div className="flex-1">
-            <h3 className="font-bold mb-2 uppercase tracking-wider text-sm">MATRIZ GENERADA EXITOSAMENTE</h3>
+            <h3 className="font-bold mb-2 uppercase tracking-wider text-sm">MATRIZ LISTA</h3>
             <p className="text-sm text-[#52525B]">
-              Tu matriz de riesgos ha sido generada con {matriz.total_riesgos} riesgos identificados. 
-              Haz clic en "DESCARGAR EXCEL" para obtener el archivo completo con:
+              {matriz.total_riesgos} riesgos identificados. El archivo Excel incluye:
             </p>
             <ul className="mt-3 space-y-1 text-sm text-[#52525B]">
-              <li>• Identificación completa de riesgos</li>
-              <li>• Evaluación según metodología {matriz.metodologia}</li>
+              <li>• Evaluación {matriz.metodologia}</li>
               <li>• Controles existentes y propuestos</li>
-              <li>• Fuentes de información documentadas</li>
-              <li>• Clasificación por nivel de riesgo con colores</li>
+              <li>• Clasificación con colores por nivel</li>
+              <li>• Fuentes documentadas</li>
             </ul>
           </div>
         </div>
@@ -186,11 +184,10 @@ export default function AnalysisPage() {
         {/* VISTA PREVIA */}
         <div className="bg-white border-2 border-[#E4E4E7] p-8">
           <h2 className="text-2xl font-bold mb-6 uppercase tracking-wider" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-            VISTA PREVIA DE LA MATRIZ
+            DESCARGA TU MATRIZ
           </h2>
           <p className="text-sm text-[#52525B] mb-6">
-            La matriz completa con todos los detalles está disponible en el archivo Excel. 
-            Para visualizar y editar la matriz, descarga el archivo usando el botón superior.
+            La matriz completa está en formato Excel. Descárgala para ver todos los detalles y editarla.
           </p>
 
           <div className="bg-[#FAFAFA] border-2 border-[#E4E4E7] p-8 text-center">
@@ -224,8 +221,8 @@ export default function AnalysisPage() {
 
           <div className="bg-white border-2 border-[#E4E4E7] p-6">
             <div className="text-[#002FA7] text-xl font-bold mb-3" style={{ fontFamily: 'JetBrains Mono, monospace' }}>03</div>
-            <h4 className="font-semibold mb-2 text-sm uppercase tracking-wider">FORMATO DE EXPORTACIÓN</h4>
-            <p className="text-sm text-[#52525B]">Excel (.xlsx) con formato GTC 45 profesional y colores por nivel de riesgo</p>
+            <h4 className="font-semibold mb-2 text-sm uppercase tracking-wider">FORMATO</h4>
+            <p className="text-sm text-[#52525B]">Excel (.xlsx) con formato GTC 45 y colores por nivel de riesgo</p>
           </div>
         </div>
       </div>

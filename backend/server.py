@@ -12,6 +12,7 @@ import structlog
 
 from core.config import settings
 from api.v1 import sst_api
+from api.v1 import pipeline_api
 from api.middleware.security import (
     limiter,
     SecurityHeadersMiddleware,
@@ -49,12 +50,81 @@ async def lifespan(app: FastAPI):
         database="MongoDB"
     )
     
+    # Inicializar Pipeline System
+    await initialize_pipeline_system()
+    
     yield
     
     # Shutdown
     from db.mongodb import mongodb
     mongodb.close()
+    
+    # Detener Pipeline Scheduler
+    if pipeline_api.pipeline_scheduler:
+        pipeline_api.pipeline_scheduler.stop()
+    
     logger.info("server_stopped")
+
+
+async def initialize_pipeline_system():
+    """Inicializa el sistema de pipelines de ingesta automática"""
+    import yaml
+    from pathlib import Path
+    from services.pipeline import PipelineManager, PipelineScheduler
+    from services.pipeline.sources import ExampleDataSource
+    
+    try:
+        # Cargar configuración
+        config_path = Path("/app/backend/config/pipeline_config.yaml")
+        
+        if not config_path.exists():
+            logger.warning("pipeline_config_not_found", message="Pipeline config no encontrado, usando defaults")
+            return
+        
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        
+        if not config.get('pipeline', {}).get('enabled', False):
+            logger.info("pipeline_disabled", message="Sistema de pipeline deshabilitado en configuración")
+            return
+        
+        # Inicializar manager
+        manager = PipelineManager()
+        
+        # Registrar fuentes desde config
+        sources_config = config.get('sources', {})
+        for source_id, source_conf in sources_config.items():
+            if source_conf.get('enabled', False):
+                # Por ahora solo soportamos ExampleDataSource
+                # Cuando se agreguen fuentes reales, usar source_conf['type'] para instanciar
+                source = ExampleDataSource(source_id, source_conf.get('config', {}))
+                manager.register_source(source)
+                logger.info("pipeline_source_registered", source_id=source_id)
+        
+        # Inicializar scheduler
+        scheduler = PipelineScheduler(manager)
+        
+        # Agregar schedules desde config
+        for source_id, source_conf in sources_config.items():
+            if source_conf.get('enabled', False) and 'schedule' in source_conf:
+                scheduler.add_schedule(source_id, source_conf['schedule'])
+                logger.info("pipeline_schedule_added", 
+                           source_id=source_id, 
+                           cron=source_conf['schedule'])
+        
+        # Iniciar scheduler
+        scheduler.start()
+        
+        # Hacer disponibles globalmente en pipeline_api
+        pipeline_api.pipeline_manager = manager
+        pipeline_api.pipeline_scheduler = scheduler
+        
+        logger.info("pipeline_system_initialized", 
+                   sources=len(manager.sources),
+                   schedules=len(scheduler.get_schedules()))
+        
+    except Exception as e:
+        logger.error("pipeline_initialization_failed", error=str(e), exc_info=True)
 
 # Crear app
 app = FastAPI(
@@ -134,6 +204,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Incluir routers
 app.include_router(sst_api.router, prefix="/api/v1", tags=["Matriz SST"])
+app.include_router(pipeline_api.router, prefix="/api/v1", tags=["Pipeline"])
 
 
 @app.get("/")

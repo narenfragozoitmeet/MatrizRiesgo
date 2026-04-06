@@ -1,0 +1,37 @@
+# Configuración de Pipelines de Ingesta Automática
+# Este archivo define las fuentes de datos y sus horarios de ejecución
+
+pipeline:
+  enabled: true
+  auto_process: true  # Procesar automáticamente documentos descargados
+  
+storage:
+  base_path: "/app/data/pipeline_ingestion"
+  
+# Fuentes de datos configuradas
+sources:
+  # Ejemplo de fuente 1 (Deshabilitada hasta que se configure)
+  example_source_1:
+    enabled: false
+    display_name: "Fuente de Ejemplo 1"
+    type: "example"  # Tipo de fuente (se usará para instanciar la clase correcta)
+    schedule: "0 9 * * 1"  # Lunes a las 9:00 AM (formato cron: min hora dia mes dia_semana)
+    config:
+      url: "https://ejemplo.com/documentos"
+      # Agregar credenciales u otras configuraciones según la fuente
+      
+  # Ejemplo de fuente 2 (Deshabilitada hasta que se configure)  
+  example_source_2:
+    enabled: false
+    display_name: "Fuente de Ejemplo 2"
+    type: "example"
+    schedule: "0 14 * * *"  # Todos los días a las 2:00 PM
+    config:
+      url: "https://ejemplo2.com/api/documentos"
+
+# Ejemplos de expresiones cron:
+# "0 9 * * 1"     - Lunes a las 9:00 AM
+# "0 14 * * *"    - Todos los días a las 2:00 PM
+# "0 0 1 * *"     - Primer día de cada mes a medianoche
+# "0 */6 * * *"   - Cada 6 horas
+# "30 8 * * 1-5"  - Lunes a Viernes a las 8:30 AM

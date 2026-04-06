@@ -124,7 +124,7 @@ export default function HomePage() {
             </button>
           </div>
           <p className="text-base leading-relaxed text-[#52525B] max-w-3xl">
-            Genera automáticamente tu Matriz de Identificación de Peligros y Valoración de Riesgos según <strong>GTC 45</strong> (Guía Técnica Colombiana) combinada con <strong>RAM</strong> (Risk Assessment Matrix). El nombre de la empresa se extrae automáticamente del documento.
+            Sube un documento y obtén tu matriz de riesgos con metodología <strong>GTC 45 + RAM</strong>. El sistema identifica automáticamente tu empresa y los peligros ocupacionales.
           </p>
           <button
             data-testid="history-button"
@@ -152,10 +152,10 @@ export default function HomePage() {
           >
             <Upload className="w-16 h-16 text-[#002FA7] mb-6" strokeWidth={1.5} />
             <h3 className="text-xl sm:text-2xl font-bold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-              ARRASTRA TU DOCUMENTO AQUÍ
+              ARRASTRA TU DOCUMENTO
             </h3>
             <p className="text-sm uppercase tracking-[0.2em] font-medium text-[#71717A] mb-6">
-              O HAZ CLIC PARA SELECCIONAR
+              O CLIC PARA SELECCIONAR
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <span className="bg-[#DC2626] text-white px-3 py-1 text-xs font-bold uppercase tracking-wider">PDF</span>
@@ -213,7 +213,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[#09090B]">Cargar Documento</p>
-                  <p className="text-xs text-[#71717A] mt-1">PDF, Word o Excel con información de la empresa</p>
+                  <p className="text-xs text-[#71717A] mt-1">Sube PDF, Word o Excel</p>
                 </div>
               </div>
               
@@ -234,8 +234,8 @@ export default function HomePage() {
                   3
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#09090B]">Matriz Generada</p>
-                  <p className="text-xs text-[#71717A] mt-1">Evaluación GTC 45 + RAM y descarga Excel</p>
+                  <p className="text-sm font-semibold text-[#09090B]">Matriz Lista</p>
+                  <p className="text-xs text-[#71717A] mt-1">Descarga tu matriz en Excel</p>
                 </div>
               </div>
             </div>
@@ -255,20 +255,20 @@ export default function HomePage() {
         <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white border-2 border-[#E4E4E7] p-8 transition-all hover:border-[#0A0A0A] hover:shadow-brutal">
             <div className="text-[#002FA7] text-2xl font-bold mb-4" style={{ fontFamily: 'JetBrains Mono, monospace' }}>01</div>
-            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>EXTRACCIÓN AUTOMÁTICA</h4>
-            <p className="text-sm text-[#52525B] leading-relaxed">El sistema extrae automáticamente el nombre de la empresa del documento usando IA (Gemini 2.5 Flash).</p>
+            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>ANÁLISIS AUTOMÁTICO</h4>
+            <p className="text-sm text-[#52525B] leading-relaxed">IA identifica tu empresa y extrae los peligros ocupacionales del documento.</p>
           </div>
           
           <div className="bg-white border-2 border-[#E4E4E7] p-8 transition-all hover:border-[#0A0A0A] hover:shadow-brutal">
             <div className="text-[#002FA7] text-2xl font-bold mb-4" style={{ fontFamily: 'JetBrains Mono, monospace' }}>02</div>
-            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>METODOLOGÍAS PROFESIONALES</h4>
-            <p className="text-sm text-[#52525B] leading-relaxed">GTC 45 para identificación de peligros + RAM (Risk Assessment Matrix) para valoración de riesgos.</p>
+            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>METODOLOGÍA GTC 45 + RAM</h4>
+            <p className="text-sm text-[#52525B] leading-relaxed">Evaluación profesional según estándares colombianos de seguridad y salud en el trabajo.</p>
           </div>
           
           <div className="bg-white border-2 border-[#E4E4E7] p-8 transition-all hover:border-[#0A0A0A] hover:shadow-brutal">
             <div className="text-[#002FA7] text-2xl font-bold mb-4" style={{ fontFamily: 'JetBrains Mono, monospace' }}>03</div>
-            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>EXPORTACIÓN EXCEL</h4>
-            <p className="text-sm text-[#52525B] leading-relaxed">Descarga matriz estructurada en Excel con colores por nivel de riesgo y fuentes documentadas.</p>
+            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>DESCARGA EN EXCEL</h4>
+            <p className="text-sm text-[#52525B] leading-relaxed">Matriz lista con formato profesional, colores por nivel de riesgo y fuentes.</p>
           </div>
         </div>
       </div>

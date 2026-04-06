@@ -66,7 +66,7 @@ export default function HistoryPage() {
             HISTORIAL DE MATRICES SST
           </h1>
           <p className="text-base text-[#52525B]">
-            Accede a todas las matrices de riesgos SST generadas previamente ({matrices.length} matrices)
+            {matrices.length} {matrices.length === 1 ? 'matriz generada' : 'matrices generadas'}
           </p>
         </div>
 
@@ -75,10 +75,10 @@ export default function HistoryPage() {
           <div className="bg-white border-2 border-[#E4E4E7] p-12 text-center">
             <FileText className="w-16 h-16 text-[#A1A1AA] mx-auto mb-4" strokeWidth={1.5} />
             <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-              NO HAY MATRICES
+              SIN MATRICES
             </h3>
             <p className="text-sm text-[#71717A] mb-6">
-              Aún no has generado ninguna matriz de riesgos SST
+              Genera tu primera matriz de riesgos SST
             </p>
             <button
               onClick={() => navigate('/')}

@@ -16,6 +16,7 @@ docs/
 │   ├── SECURITY_CHECKLIST.md   # Seguridad
 │   ├── TESTING_GUIDE.md        # Testing
 │   ├── DEPLOYMENT_GUIDE.md     # Deployment
+│   ├── PIPELINE_GUIDE.md       # Pipeline de Ingesta (NUEVO)
 │   ├── CONTRIBUTING.md         # Contribución
 │   └── MONITORING_SETUP.md     # Monitoreo (TODO)
 └── architecture/
@@ -89,6 +90,23 @@ docs/
 - Troubleshooting
 
 **Para quién:** DevOps, SRE, Backend Lead
+
+---
+
+### 📦 [PIPELINE GUIDE](./guides/PIPELINE_GUIDE.md) ✨ **NUEVO**
+**Sistema de Pipeline de Ingesta Automática**
+
+**Contenido:**
+- Arquitectura del sistema de pipelines
+- Configuración de fuentes de datos
+- Crear fuentes personalizadas (DataSource)
+- Scheduler con cron expressions
+- API endpoints de gestión
+- Sistema de almacenamiento
+- Testing y troubleshooting
+- Ejemplos de implementación
+
+**Para quién:** Backend Developers, Integration Engineers, DevOps
 
 ---
 
