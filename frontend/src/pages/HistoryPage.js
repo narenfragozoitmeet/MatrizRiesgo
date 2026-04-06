@@ -10,7 +10,6 @@ export default function HistoryPage() {
   const navigate = useNavigate();
   const [matrices, setMatrices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all', 'sst', 'legal'
 
   useEffect(() => {
     fetchMatrices();
@@ -34,11 +33,6 @@ export default function HistoryPage() {
     if (count >= 1) return 'text-[#EAB308]';
     return 'text-[#16A34A]';
   };
-
-  const filteredMatrices = matrices.filter(m => {
-    if (filter === 'all') return true;
-    return m.tipo_matriz === filter;
-  });
 
   if (loading) {
     return (
@@ -69,61 +63,22 @@ export default function HistoryPage() {
         {/* TÍTULO */}
         <div className="mb-8">
           <h1 className="text-4xl sm:text-5xl tracking-tighter font-black mb-4" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-            HISTORIAL DE MATRICES
+            HISTORIAL DE MATRICES SST
           </h1>
           <p className="text-base text-[#52525B]">
-            Accede a todas las matrices de riesgos generadas previamente
+            Accede a todas las matrices de riesgos SST generadas previamente ({matrices.length} matrices)
           </p>
         </div>
 
-        {/* FILTROS */}
-        <div className="mb-8 flex gap-3 flex-wrap">
-          <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all ${
-              filter === 'all'
-                ? 'bg-[#0A0A0A] text-white'
-                : 'bg-white border-2 border-[#E4E4E7] hover:border-[#0A0A0A]'
-            }`}
-          >
-            Todas ({matrices.length})
-          </button>
-          <button
-            onClick={() => setFilter('sst')}
-            className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
-              filter === 'sst'
-                ? 'bg-[#002FA7] text-white'
-                : 'bg-white border-2 border-[#E4E4E7] hover:border-[#002FA7]'
-            }`}
-          >
-            <Shield className="w-4 h-4" />
-            SST ({matrices.filter(m => m.tipo_matriz === 'sst').length})
-          </button>
-          <button
-            onClick={() => setFilter('legal')}
-            className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition-all flex items-center gap-2 ${
-              filter === 'legal'
-                ? 'bg-[#002FA7] text-white'
-                : 'bg-white border-2 border-[#E4E4E7] hover:border-[#002FA7]'
-            }`}
-          >
-            <Scale className="w-4 h-4" />
-            Legal ({matrices.filter(m => m.tipo_matriz === 'legal').length})
-          </button>
-        </div>
-
         {/* LISTADO */}
-        {filteredMatrices.length === 0 ? (
+        {matrices.length === 0 ? (
           <div className="bg-white border-2 border-[#E4E4E7] p-12 text-center">
             <FileText className="w-16 h-16 text-[#A1A1AA] mx-auto mb-4" strokeWidth={1.5} />
             <h3 className="text-xl font-bold mb-2" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
               NO HAY MATRICES
             </h3>
             <p className="text-sm text-[#71717A] mb-6">
-              {filter === 'all' 
-                ? 'Aún no has generado ninguna matriz de riesgos'
-                : `No hay matrices de tipo ${filter.toUpperCase()}`
-              }
+              Aún no has generado ninguna matriz de riesgos SST
             </p>
             <button
               onClick={() => navigate('/')}
@@ -134,61 +89,52 @@ export default function HistoryPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {filteredMatrices.map((matriz) => {
-              const TipoIcon = matriz.tipo_matriz === 'sst' ? Shield : Scale;
-              const tipoLabel = matriz.tipo_matriz === 'sst' ? 'SST' : 'LEGAL';
-              const tipoColor = matriz.tipo_matriz === 'sst' ? 'text-[#002FA7]' : 'text-[#0A0A0A]';
-              
-              return (
-                <div
-                  key={matriz.id}
-                  data-testid="matrix-card"
-                  className="bg-white border-2 border-[#E4E4E7] p-6 transition-all hover:border-[#0A0A0A] hover:shadow-brutal cursor-pointer"
-                  onClick={() => navigate(`/analysis/${matriz.tipo_matriz}/${matriz.id}`)}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 border-2 border-[#E4E4E7] flex items-center justify-center ${tipoColor}`}>
-                      <TipoIcon className="w-6 h-6" strokeWidth={1.5} />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4 mb-2">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-xs font-bold uppercase tracking-wider px-2 py-1 ${
-                              matriz.tipo_matriz === 'sst' 
-                                ? 'bg-[#F0F4FF] text-[#002FA7]' 
-                                : 'bg-[#FAFAFA] text-[#0A0A0A]'
-                            }`}>
-                              {tipoLabel}
-                            </span>
-                            <h3 className="text-lg font-bold truncate" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-                              {matriz.empresa}
-                            </h3>
-                          </div>
-                          <p className="text-sm text-[#71717A]">
-                            {matriz.documento_origen}
-                          </p>
-                          <p className="text-xs text-[#A1A1AA] mt-1">
-                            {new Date(matriz.created_at).toLocaleDateString('es-ES', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
+            {matrices.map((matriz) => (
+              <div
+                key={matriz.id}
+                data-testid="matrix-card"
+                className="bg-white border-2 border-[#E4E4E7] p-6 transition-all hover:border-[#0A0A0A] hover:shadow-brutal cursor-pointer"
+                onClick={() => navigate(`/analysis/${matriz.id}`)}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 border-2 border-[#E4E4E7] flex items-center justify-center text-[#002FA7]">
+                    <Shield className="w-6 h-6" strokeWidth={1.5} />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-4 mb-2">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-bold uppercase tracking-wider px-2 py-1 bg-[#F0F4FF] text-[#002FA7]">
+                            SST
+                          </span>
+                          <h3 className="text-lg font-bold truncate" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
+                            {matriz.empresa}
+                          </h3>
                         </div>
-                        
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(`${API}/matrix/${matriz.tipo_matriz}/${matriz.id}/export`, '_blank');
-                          }}
-                          className="bg-[#0A0A0A] text-white hover:bg-[#002FA7] p-2 transition-colors"
-                          title="Descargar Excel"
-                        >
-                          <Download className="w-4 h-4" strokeWidth={2} />
-                        </button>
+                        <p className="text-sm text-[#71717A]">
+                          {matriz.documento_origen}
+                        </p>
+                        <p className="text-xs text-[#A1A1AA] mt-1">
+                          {new Date(matriz.created_at).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })}
+                        </p>
                       </div>
+                      
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(`${API}/matrix/${matriz.id}/export`, '_blank');
+                        }}
+                        className="bg-[#0A0A0A] text-white hover:bg-[#002FA7] p-2 transition-colors"
+                        title="Descargar Excel"
+                      >
+                        <Download className="w-4 h-4" strokeWidth={2} />
+                      </button>
+                    </div>
                       
                       {/* STATS */}
                       <div className="mt-4 flex items-center gap-6 flex-wrap">
@@ -216,7 +162,6 @@ export default function HistoryPage() {
                           <span className="text-xs uppercase tracking-wider text-[#71717A]">Bajos:</span>
                           <span className="text-sm font-bold text-[#16A34A]">{matriz.riesgos_bajos}</span>
                         </div>
-                      </div>
                     </div>
                   </div>
                 </div>

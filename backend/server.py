@@ -1,13 +1,13 @@
 """FastAPI Server - Riesgo IA Backend
 
-API REST para generación automática de matrices de riesgos SST y Legales
+API REST para generación automática de Matrices de Riesgos SST (GTC 45 + RAM)
 Powered by LLM Agents + Gemini 2.5 Flash
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.config import settings
-from api.v1 import unified_api
+from api.v1 import sst_api
 import logging
 from contextlib import asynccontextmanager
 
@@ -23,9 +23,10 @@ async def lifespan(app: FastAPI):
     """Gestión del ciclo de vida de la aplicación"""
     # Startup
     logger.info(f"🚀 {settings.APP_NAME} v{settings.VERSION} iniciando...")
-    logger.info("📊 Arquitectura: Multi-Agente con LLM (Gemini 2.5 Flash)")
+    logger.info("📊 Matriz SST - Identificación de Peligros y Valoración de Riesgos")
+    logger.info("🔧 Metodologías: GTC 45 (Guía Técnica Colombiana) + RAM (Risk Assessment Matrix)")
     logger.info("🗄️  Base de datos: MongoDB (Arquitectura Medallón)")
-    logger.info("🤖 Agentes: Extractor → Identificador → Evaluador → Generador")
+    logger.info("🤖 LLM: Gemini 2.5 Flash via emergentintegrations")
     logger.info("✅ Servidor listo!")
     
     yield
@@ -39,7 +40,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    description="Sistema inteligente para generación automática de matrices de riesgos SST (GTC 45) y Riesgos Legales usando IA",
+    description="Sistema inteligente para generación automática de Matrices de Riesgos SST (Seguridad y Salud en el Trabajo) según GTC 45",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     lifespan=lifespan
@@ -55,7 +56,7 @@ app.add_middleware(
 )
 
 # Incluir routers
-app.include_router(unified_api.router, prefix="/api/v1", tags=["Matriz de Riesgos"])
+app.include_router(sst_api.router, prefix="/api/v1", tags=["Matriz SST"])
 
 @app.get("/")
 async def root():
@@ -63,9 +64,13 @@ async def root():
         "app": settings.APP_NAME,
         "version": settings.VERSION,
         "status": "running",
-        "tipos_matrices": ["SST (GTC 45)", "Riesgos Legales"],
-        "metodologias": ["GTC 45", "RAM (Risk Assessment Matrix)", "Análisis Normativo"],
-        "llm": f"{settings.LLM_MODEL_PROVIDER}/{settings.LLM_MODEL_NAME}"
+        "descripcion": "Sistema de Matriz de Riesgos SST",
+        "metodologias": [
+            "GTC 45 - Guía Técnica Colombiana para identificación de peligros y valoración de riesgos",
+            "RAM - Risk Assessment Matrix (herramienta externa de cálculo)"
+        ],
+        "llm": f"{settings.LLM_MODEL_PROVIDER}/{settings.LLM_MODEL_NAME}",
+        "extraccion_automatica": "El nombre de la empresa se extrae automáticamente del documento"
     }
 
 @app.get("/api/health")
@@ -78,7 +83,8 @@ async def health_check():
         return {
             "status": "healthy",
             "database": "connected",
-            "llm": f"{settings.LLM_MODEL_PROVIDER}/{settings.LLM_MODEL_NAME}"
+            "llm": f"{settings.LLM_MODEL_PROVIDER}/{settings.LLM_MODEL_NAME}",
+            "tipo_matriz": "Solo SST (Seguridad y Salud en el Trabajo)"
         }
     except Exception as e:
         return {

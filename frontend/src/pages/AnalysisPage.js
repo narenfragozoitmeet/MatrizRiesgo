@@ -7,7 +7,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api/v1`;
 
 export default function AnalysisPage() {
-  const { tipo, matrizId } = useParams();
+  const { matrizId } = useParams();
   const navigate = useNavigate();
   const [matriz, setMatriz] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,12 +16,12 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     fetchMatriz();
-  }, [matrizId, tipo]);
+  }, [matrizId]);
 
   const fetchMatriz = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API}/matrix/${tipo}/${matrizId}`);
+      const response = await axios.get(`${API}/matrix/${matrizId}`);
       setMatriz(response.data);
     } catch (err) {
       setError(err.response?.data?.detail || 'Error al cargar la matriz');
@@ -33,14 +33,14 @@ export default function AnalysisPage() {
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      const response = await axios.get(`${API}/matrix/${tipo}/${matrizId}/export`, {
+      const response = await axios.get(`${API}/matrix/${matrizId}/export`, {
         responseType: 'blob'
       });
       
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      const filename = `matriz_${tipo}_${matriz.empresa}_${matrizId.substring(0, 8)}.xlsx`;
+      const filename = `matriz_sst_${matriz.empresa.replace(/\s+/g, '_')}_${matrizId.substring(0, 8)}.xlsx`;
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
@@ -93,9 +93,6 @@ export default function AnalysisPage() {
     );
   }
 
-  const tipoLabel = tipo === 'sst' ? 'SST (GTC 45)' : 'RIESGOS LEGALES';
-  const TipoIcon = tipo === 'sst' ? Shield : Scale;
-
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-12">
@@ -124,11 +121,11 @@ export default function AnalysisPage() {
         {/* TÍTULO Y STATS */}
         <div className="mb-12 bg-white border-2 border-[#E4E4E7] p-8">
           <div className="flex items-start gap-4 mb-6">
-            <TipoIcon className="w-10 h-10 text-[#002FA7]" />
+            <Shield className="w-10 h-10 text-[#002FA7]" />
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl sm:text-4xl tracking-tighter font-black" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-                  {tipoLabel}
+                  MATRIZ SST (GTC 45)
                 </h1>
               </div>
               <p className="text-base text-[#52525B]">
@@ -197,7 +194,7 @@ export default function AnalysisPage() {
           </p>
 
           <div className="bg-[#FAFAFA] border-2 border-[#E4E4E7] p-8 text-center">
-            <TipoIcon className="w-16 h-16 text-[#A1A1AA] mx-auto mb-4" />
+            <Shield className="w-16 h-16 text-[#A1A1AA] mx-auto mb-4" />
             <p className="text-sm text-[#71717A] mb-4">
               Archivo Excel generado con {matriz.total_riesgos} filas de datos
             </p>
@@ -228,7 +225,7 @@ export default function AnalysisPage() {
           <div className="bg-white border-2 border-[#E4E4E7] p-6">
             <div className="text-[#002FA7] text-xl font-bold mb-3" style={{ fontFamily: 'JetBrains Mono, monospace' }}>03</div>
             <h4 className="font-semibold mb-2 text-sm uppercase tracking-wider">FORMATO DE EXPORTACIÓN</h4>
-            <p className="text-sm text-[#52525B]">Excel (.xlsx) con formato profesional y colores por nivel de riesgo</p>
+            <p className="text-sm text-[#52525B]">Excel (.xlsx) con formato GTC 45 profesional y colores por nivel de riesgo</p>
           </div>
         </div>
       </div>

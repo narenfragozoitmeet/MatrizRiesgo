@@ -19,24 +19,27 @@ class MatrizSSTProcessor:
     async def procesar(
         self,
         texto_documento: str,
-        empresa: str,
         nombre_documento: str,
         document_id: str
     ) -> MatrizSST:
         """
         Procesa documento completo y genera matriz SST
+        Extrae automáticamente el nombre de la empresa del documento
         
         Returns:
             MatrizSST completa
         """
         try:
-            logger.info(f"🔄 Iniciando procesamiento SST para {empresa}")
+            logger.info(f"🔄 Iniciando procesamiento SST")
             
-            # PASO 1: Identificar peligros
-            logger.info("📋 Paso 1/2: Identificando peligros SST...")
+            # PASO 1: Identificar peligros Y extraer nombre empresa
+            logger.info("📋 Paso 1/2: Identificando peligros SST y extrayendo empresa...")
             peligros_data = await self._identificar_peligros(
-                texto_documento, empresa, nombre_documento
+                texto_documento, nombre_documento
             )
+            
+            # Extraer nombre de empresa del resultado
+            empresa = peligros_data.get("nombre_empresa", "Empresa Desconocida")
             
             # PASO 2: Evaluar riesgos
             logger.info("📊 Paso 2/2: Evaluando riesgos con GTC 45...")
@@ -55,13 +58,12 @@ class MatrizSSTProcessor:
             raise
     
     async def _identificar_peligros(
-        self, texto: str, empresa: str, nombre_doc: str
+        self, texto: str, nombre_doc: str
     ) -> Dict[str, Any]:
-        """Agente 1: Identifica peligros SST en el texto"""
+        """Agente 1: Identifica peligros SST en el texto Y extrae nombre empresa"""
         
         prompt = PROMPT_IDENTIFICAR_PELIGROS_SST.format(
             texto_documento=texto[:15000],  # Limitar tokens
-            empresa=empresa,
             nombre_documento=nombre_doc
         )
         

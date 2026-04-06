@@ -27,14 +27,14 @@ PROMPT_IDENTIFICAR_PELIGROS_SST = """Analiza el siguiente texto extraído de un 
 TEXTO DEL DOCUMENTO:
 {texto_documento}
 
-INFORMACIÓN DE LA EMPRESA:
-- Nombre: {empresa}
-- Documento: {nombre_documento}
+NOMBRE DEL DOCUMENTO:
+{nombre_documento}
 
 INSTRUCCIONES:
-1. Lee cuidadosamente todo el texto
-2. Identifica peligros SST según la clasificación GTC 45
-3. Para cada peligro encontrado, extrae:
+1. PRIMERO: Extrae el nombre de la empresa del documento (busca en encabezados, títulos, sección "EMPRESA:", "RAZÓN SOCIAL:", etc.)
+2. Lee cuidadosamente todo el texto
+3. Identifica peligros SST según la clasificación GTC 45
+4. Para cada peligro encontrado, extrae:
    - Clasificación (Físico, Químico, Biológico, etc.)
    - Descripción específica del peligro
    - Proceso/actividad donde se presenta
@@ -42,10 +42,11 @@ INSTRUCCIONES:
    - Efectos posibles en la salud
    - Fuente exacta (cita textual del documento)
 
-4. Responde en formato JSON estructurado:
+5. Responde en formato JSON estructurado:
 
 ```json
 {{
+  "nombre_empresa": "Nombre de la empresa extraído del documento",
   "peligros_identificados": [
     {{
       "clasificacion": "FÍSICO|QUÍMICO|BIOLÓGICO|BIOMECÁNICO|PSICOSOCIAL|MECÁNICO|ELÉCTRICO|LOCATIVO|TECNOLÓGICO|NATURAL|TRÁNSITO|PÚBLICO|SEGURIDAD",
@@ -62,6 +63,7 @@ INSTRUCCIONES:
 ```
 
 IMPORTANTE: 
+- PRIMERO extrae el nombre de la empresa del documento
 - Si no encuentras peligros SST explícitos, infiere de las actividades mencionadas
 - Sé exhaustivo, no omitas peligros potenciales
 - Cita siempre la fuente exacta
