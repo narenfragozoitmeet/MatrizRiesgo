@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, FileText, Loader2, Shield, Scale, Download } from 'lucide-react';
+import { ArrowLeft, FileText, Loader2, Shield, Download } from 'lucide-react';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -135,38 +135,38 @@ export default function HistoryPage() {
                         <Download className="w-4 h-4" strokeWidth={2} />
                       </button>
                     </div>
-                      
-                      {/* STATS */}
-                      <div className="mt-4 flex items-center gap-6 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs uppercase tracking-wider text-[#71717A]">Total:</span>
-                          <span className="text-sm font-bold">{matriz.total_riesgos}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs uppercase tracking-wider text-[#71717A]">Críticos:</span>
-                          <span className={`text-sm font-bold ${getRiskColor(matriz.riesgos_criticos)}`}>
-                            {matriz.riesgos_criticos}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs uppercase tracking-wider text-[#71717A]">Altos:</span>
-                          <span className={`text-sm font-bold ${getRiskColor(matriz.riesgos_altos)}`}>
-                            {matriz.riesgos_altos}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs uppercase tracking-wider text-[#71717A]">Medios:</span>
-                          <span className="text-sm font-bold text-[#EAB308]">{matriz.riesgos_medios}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs uppercase tracking-wider text-[#71717A]">Bajos:</span>
-                          <span className="text-sm font-bold text-[#16A34A]">{matriz.riesgos_bajos}</span>
-                        </div>
+                    
+                    {/* STATS */}
+                    <div className="mt-4 flex items-center gap-6 flex-wrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs uppercase tracking-wider text-[#71717A]">Total:</span>
+                        <span className="text-sm font-bold">{matriz.total_riesgos}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs uppercase tracking-wider text-[#71717A]">Críticos:</span>
+                        <span className={`text-sm font-bold ${getRiskColor(matriz.riesgos_criticos)}`}>
+                          {matriz.riesgos_criticos}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs uppercase tracking-wider text-[#71717A]">Altos:</span>
+                        <span className={`text-sm font-bold ${getRiskColor(matriz.riesgos_altos)}`}>
+                          {matriz.riesgos_altos}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs uppercase tracking-wider text-[#71717A]">Medios:</span>
+                        <span className="text-sm font-bold text-[#EAB308]">{matriz.riesgos_medios}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs uppercase tracking-wider text-[#71717A]">Bajos:</span>
+                        <span className="text-sm font-bold text-[#16A34A]">{matriz.riesgos_bajos}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
