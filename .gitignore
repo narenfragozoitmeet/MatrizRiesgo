@@ -56,3 +56,7 @@ Thumbs.db
 *.pem
 *.key
 secrets/
+-e 
+# Environment files
+*.env
+*.env.*
