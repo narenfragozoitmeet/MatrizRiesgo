@@ -1,13 +1,15 @@
 """FastAPI Server - Riesgo IA Backend
 
-API REST para sistema multi-agente de matrices de riesgos GTC 45 y RAM
+API REST para generación automática de matrices de riesgos SST y Legales
+Powered by LLM Agents + Gemini 2.5 Flash
 """
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from core.config import settings
-from api.v1 import ingest, matrix, sources
+from api.v1 import unified_api
 import logging
+from contextlib import asynccontextmanager
 
 # Configurar logging
 logging.basicConfig(
@@ -16,13 +18,31 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Gestión del ciclo de vida de la aplicación"""
+    # Startup
+    logger.info(f"🚀 {settings.APP_NAME} v{settings.VERSION} iniciando...")
+    logger.info("📊 Arquitectura: Multi-Agente con LLM (Gemini 2.5 Flash)")
+    logger.info("🗄️  Base de datos: MongoDB (Arquitectura Medallón)")
+    logger.info("🤖 Agentes: Extractor → Identificador → Evaluador → Generador")
+    logger.info("✅ Servidor listo!")
+    
+    yield
+    
+    # Shutdown
+    from db.mongodb import mongodb
+    mongodb.close()
+    logger.info("👋 Servidor apagado")
+
 # Crear app
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.VERSION,
-    description="Sistema multi-agente para generación automática de matrices de riesgos SST",
+    description="Sistema inteligente para generación automática de matrices de riesgos SST (GTC 45) y Riesgos Legales usando IA",
     docs_url="/api/docs",
-    redoc_url="/api/redoc"
+    redoc_url="/api/redoc",
+    lifespan=lifespan
 )
 
 # CORS
@@ -35,9 +55,7 @@ app.add_middleware(
 )
 
 # Incluir routers
-app.include_router(ingest.router, prefix="/api/v1", tags=["Ingestion"])
-app.include_router(matrix.router, prefix="/api/v1", tags=["Matrix"])
-app.include_router(sources.router, prefix="/api/v1", tags=["Sources"])
+app.include_router(unified_api.router, prefix="/api/v1", tags=["Matriz de Riesgos"])
 
 @app.get("/")
 async def root():
@@ -45,20 +63,26 @@ async def root():
         "app": settings.APP_NAME,
         "version": settings.VERSION,
         "status": "running",
-        "arquitectura": "Multi-Agente LangGraph + Medallón (Bronze/Silver/Gold)"
+        "tipos_matrices": ["SST (GTC 45)", "Riesgos Legales"],
+        "metodologias": ["GTC 45", "RAM (Risk Assessment Matrix)", "Análisis Normativo"],
+        "llm": f"{settings.LLM_MODEL_PROVIDER}/{settings.LLM_MODEL_NAME}"
     }
 
-@app.get("/health")
+@app.get("/api/health")
 async def health_check():
-    return {"status": "healthy"}
-
-@app.on_event("startup")
-async def startup_event():
-    logger.info(f"{settings.APP_NAME} v{settings.VERSION} iniciado")
-    logger.info("Arquitectura: Multi-Agente con LangGraph")
-    logger.info("Base de datos: PostgreSQL (Bronze/Silver/Gold)")
-    logger.info("Cola de tareas: Celery + Redis")
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Apagando servidor...")
+    """Health check endpoint"""
+    from db.mongodb import mongodb
+    try:
+        # Test MongoDB connection
+        mongodb.db.command('ping')
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "llm": f"{settings.LLM_MODEL_PROVIDER}/{settings.LLM_MODEL_NAME}"
+        }
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "database": "disconnected",
+            "error": str(e)
+        }
