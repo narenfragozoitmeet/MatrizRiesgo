@@ -125,7 +125,7 @@ export default function AnalysisPage() {
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl sm:text-4xl tracking-tighter font-black" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-                  Matriz SST (GTC 45)
+                  MATRIZ SST (GTC 45)
                 </h1>
               </div>
               <p className="text-base text-[#52525B]">

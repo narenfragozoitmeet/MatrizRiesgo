@@ -120,7 +120,7 @@ export default function HomePage() {
         <header className="mb-12">
           <div className="flex items-start justify-between gap-4 mb-4">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl tracking-tighter font-black" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-              Matriz de Riesgos SST
+              MATRIZ DE RIESGOS SST
             </h1>
             <button
               onClick={loadInfo}
@@ -262,19 +262,19 @@ export default function HomePage() {
         <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white border-2 border-[#E4E4E7] p-8 transition-all hover:border-[#0A0A0A] hover:shadow-brutal">
             <div className="text-[#002FA7] text-2xl font-bold mb-4" style={{ fontFamily: 'JetBrains Mono, monospace' }}>01</div>
-            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>Análisis Automático</h4>
+            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>ANÁLISIS AUTOMÁTICO</h4>
             <p className="text-sm text-[#52525B] leading-relaxed">La IA identifica automáticamente el nombre de tu empresa y extrae los peligros ocupacionales del documento usando tecnología Gemini 2.5 Flash.</p>
           </div>
           
           <div className="bg-white border-2 border-[#E4E4E7] p-8 transition-all hover:border-[#0A0A0A] hover:shadow-brutal">
             <div className="text-[#002FA7] text-2xl font-bold mb-4" style={{ fontFamily: 'JetBrains Mono, monospace' }}>02</div>
-            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>Metodología</h4>
+            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>METODOLOGÍA</h4>
             <p className="text-sm text-[#52525B] leading-relaxed">Evaluación profesional usando metodologías como GTC 45 (Guía Técnica Colombiana) y RAM (Risk Assessment Matrix) para identificación y valoración de riesgos.</p>
           </div>
           
           <div className="bg-white border-2 border-[#E4E4E7] p-8 transition-all hover:border-[#0A0A0A] hover:shadow-brutal">
             <div className="text-[#002FA7] text-2xl font-bold mb-4" style={{ fontFamily: 'JetBrains Mono, monospace' }}>03</div>
-            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>Descarga en Excel</h4>
+            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>DESCARGA EN EXCEL</h4>
             <p className="text-sm text-[#52525B] leading-relaxed">Obtén tu matriz lista con formato profesional, colores automáticos según el nivel de riesgo (crítico, alto, medio, bajo) y fuentes de información documentadas.</p>
           </div>
         </div>
