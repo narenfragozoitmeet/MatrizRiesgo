@@ -89,10 +89,9 @@ class TextValidator:
         Raises:
             ValidationError: Si texto inválido
         """
-        if not text or len(text.strip()) < cls.MIN_TEXT_LENGTH:
+        if not text or len(text.strip()) == 0:
             raise ValidationError(
-                f"El documento no contiene suficiente texto. "
-                f"Mínimo {cls.MIN_TEXT_LENGTH} caracteres requeridos."
+                "El documento está vacío o no contiene texto extraíble."
             )
         
         if len(text) > cls.MAX_TEXT_LENGTH:

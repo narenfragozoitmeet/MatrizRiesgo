@@ -67,7 +67,14 @@ export default function HomePage() {
     ];
     
     if (!validTypes.includes(selectedFile.type)) {
-      setError('Tipo de archivo no soportado. Use PDF, Word (.docx) o Excel (.xlsx)');
+      setError('Tipo de archivo no soportado. Use PDF, Word (.docx) o Excel (.xlsx). Máximo 100 MB.');
+      return;
+    }
+    
+    // Validar tamaño (100 MB máximo)
+    const maxSize = 100 * 1024 * 1024; // 100 MB en bytes
+    if (selectedFile.size > maxSize) {
+      setError(`Archivo muy grande (${(selectedFile.size / 1024 / 1024).toFixed(1)} MB). Máximo 100 MB.`);
       return;
     }
     
@@ -113,7 +120,7 @@ export default function HomePage() {
         <header className="mb-12">
           <div className="flex items-start justify-between gap-4 mb-4">
             <h1 className="text-4xl sm:text-5xl lg:text-6xl tracking-tighter font-black" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-              MATRIZ DE RIESGOS SST
+              Matriz de Riesgos SST
             </h1>
             <button
               onClick={loadInfo}
@@ -255,20 +262,20 @@ export default function HomePage() {
         <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-white border-2 border-[#E4E4E7] p-8 transition-all hover:border-[#0A0A0A] hover:shadow-brutal">
             <div className="text-[#002FA7] text-2xl font-bold mb-4" style={{ fontFamily: 'JetBrains Mono, monospace' }}>01</div>
-            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>ANÁLISIS AUTOMÁTICO</h4>
-            <p className="text-sm text-[#52525B] leading-relaxed">IA identifica tu empresa y extrae los peligros ocupacionales del documento.</p>
+            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>Análisis Automático</h4>
+            <p className="text-sm text-[#52525B] leading-relaxed">La IA identifica automáticamente el nombre de tu empresa y extrae los peligros ocupacionales del documento usando tecnología Gemini 2.5 Flash.</p>
           </div>
           
           <div className="bg-white border-2 border-[#E4E4E7] p-8 transition-all hover:border-[#0A0A0A] hover:shadow-brutal">
             <div className="text-[#002FA7] text-2xl font-bold mb-4" style={{ fontFamily: 'JetBrains Mono, monospace' }}>02</div>
-            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>METODOLOGÍA GTC 45 + RAM</h4>
-            <p className="text-sm text-[#52525B] leading-relaxed">Evaluación profesional según estándares colombianos de seguridad y salud en el trabajo.</p>
+            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>Metodología</h4>
+            <p className="text-sm text-[#52525B] leading-relaxed">Evaluación profesional usando metodologías como GTC 45 (Guía Técnica Colombiana) y RAM (Risk Assessment Matrix) para identificación y valoración de riesgos.</p>
           </div>
           
           <div className="bg-white border-2 border-[#E4E4E7] p-8 transition-all hover:border-[#0A0A0A] hover:shadow-brutal">
             <div className="text-[#002FA7] text-2xl font-bold mb-4" style={{ fontFamily: 'JetBrains Mono, monospace' }}>03</div>
-            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>DESCARGA EN EXCEL</h4>
-            <p className="text-sm text-[#52525B] leading-relaxed">Matriz lista con formato profesional, colores por nivel de riesgo y fuentes.</p>
+            <h4 className="text-lg sm:text-xl font-semibold mb-3" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>Descarga en Excel</h4>
+            <p className="text-sm text-[#52525B] leading-relaxed">Obtén tu matriz lista con formato profesional, colores automáticos según el nivel de riesgo (crítico, alto, medio, bajo) y fuentes de información documentadas.</p>
           </div>
         </div>
       </div>

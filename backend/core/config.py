@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     
     # Security
     CORS_ORIGINS: str = "http://localhost:3000"
-    MAX_FILE_SIZE_MB: int = 10
+    MAX_FILE_SIZE_MB: int = 100
     RATE_LIMIT_PER_MINUTE: int = 5
     
     # Paths

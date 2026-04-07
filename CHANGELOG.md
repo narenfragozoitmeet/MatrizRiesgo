@@ -1,5 +1,38 @@
 # 📝 CHANGELOG
 
+## [1.1.1] - 2026-04-07
+
+### ✨ Mejoras de Validación y UX
+
+#### Backend - Validación de Archivos
+- **Cambio crítico**: Límite de archivo aumentado de 10MB a **100MB**
+- **Eliminada validación innecesaria**: Ya no se requiere "mínimo 100 caracteres"
+- **Nueva validación**: Solo se verifica que el documento no esté completamente vacío
+- **Actualizado**: `core/config.py` - `MAX_FILE_SIZE_MB: 100`
+- **Actualizado**: `shared/validators.py` - Eliminada restricción de 100 caracteres
+
+#### Frontend - Títulos y UX
+- **Títulos limpios**: Cambio de mayúsculas forzadas a capitalización normal
+  - "MATRIZ DE RIESGOS SST" → "Matriz de Riesgos SST"
+  - "HISTORIAL DE MATRICES SST" → "Historial de Matrices SST"
+  - "MATRIZ SST (GTC 45)" → "Matriz SST (GTC 45)"
+  
+- **Features mejoradas**: Títulos más simples con descripciones completas
+  - **01 - Análisis Automático**: Descripción detallada sobre identificación con IA
+  - **02 - Metodología**: Explicación completa de GTC 45 y RAM
+  - **03 - Descarga en Excel**: Detalles del formato y contenido
+
+- **Validación en frontend**: 
+  - Verificación de tamaño de archivo (100 MB máximo)
+  - Mensaje de error claro con tamaño del archivo
+  - Tipos de archivo permitidos especificados
+
+### 🐛 Correcciones
+- Validación de texto ahora solo verifica que no esté vacío (no caracteres mínimos)
+- Mensajes de error más claros y específicos
+
+---
+
 ## [1.1.0] - 2026-04-06
 
 ### ✨ Agregado

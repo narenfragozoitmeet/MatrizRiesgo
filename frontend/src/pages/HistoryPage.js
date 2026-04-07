@@ -63,7 +63,7 @@ export default function HistoryPage() {
         {/* TÍTULO */}
         <div className="mb-8">
           <h1 className="text-4xl sm:text-5xl tracking-tighter font-black mb-4" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-            HISTORIAL DE MATRICES SST
+            Historial de Matrices SST
           </h1>
           <p className="text-base text-[#52525B]">
             {matrices.length} {matrices.length === 1 ? 'matriz generada' : 'matrices generadas'}
