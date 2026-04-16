@@ -161,7 +161,7 @@ class MatrizProcessingChain:
         except Exception as e:
             logger.error(
                 "Error procesando documento",
-                error=str(e),
+                exception=str(e),
                 filename=filename,
                 exc_info=True
             )
