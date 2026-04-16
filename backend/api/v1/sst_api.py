@@ -215,17 +215,17 @@ async def ingest_and_generate_matrix(
         logger.warning(
             "ingest_validation_error",
             document_id=document_id,
-            error=str(e)
+            exception=str(e)
         )
         raise
     except Exception as e:
         logger.error(
             "ingest_unexpected_error",
             document_id=document_id,
-            error=str(e),
+            exception=str(e),
             exc_info=True
         )
-        raise HTTPException(status_code=500, detail="Error interno del servidor")
+        raise HTTPException(status_code=500, detail=f"Error procesando documento: {str(e)}")
 
 
 @router.get("/matrix/{matriz_id}", response_model=MatrizResponse)
@@ -255,7 +255,7 @@ async def get_matriz(matriz_id: str):
     except MatrizNotFoundError:
         raise
     except Exception as e:
-        logger.error("get_matriz_error", matriz_id=matriz_id, error=str(e))
+        logger.error("get_matriz_error", matriz_id=matriz_id, exception=str(e))
         raise HTTPException(status_code=500, detail="Error obteniendo matriz")
 
 
@@ -337,5 +337,5 @@ async def list_matrices(
         logger.info("matrices_listed", count=len(matrices))
         return matrices
     except Exception as e:
-        logger.error("list_matrices_error", error=str(e))
+        logger.error("list_matrices_error", exception=str(e))
         raise HTTPException(status_code=500, detail="Error listando matrices")
