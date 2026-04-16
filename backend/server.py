@@ -143,12 +143,24 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(FileSizeValidationMiddleware)
 
-# CORS con lista blanca
+# CORS con validación mejorada
+cors_origins = settings.cors_origins_list
+
+# Validar CORS en producción
+if settings.ENVIRONMENT == "production":
+    if "*" in cors_origins:
+        logger.critical("CORS wildcard (*) detectado en PRODUCCIÓN - RIESGO DE SEGURIDAD")
+        raise ValueError("CORS_ORIGINS no puede ser '*' en producción")
+    
+    if settings.cors_origins_list and settings.cors_origins_list[0] == "*" and True:  # allow_credentials
+        logger.critical("CORS wildcard con allow_credentials=True - VULNERABILIDAD CRÍTICA")
+        raise ValueError("No se puede usar CORS='*' con allow_credentials=True")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH"],
     allow_headers=["*"],
     max_age=3600,
 )
@@ -191,14 +203,31 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.critical(
         "unhandled_exception",
         exception=str(exc),
+        exception_type=exc.__class__.__name__,
         path=request.url.path,
         exc_info=True
     )
     
-    return JSONResponse(
-        status_code=500,
-        content={"detail": "Error interno del servidor"}
-    )
+    # En producción, NO exponer detalles internos
+    if settings.ENVIRONMENT == "production":
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Error interno del servidor. Contacte al administrador.",
+                "error_id": f"{request.url.path}_{exc.__class__.__name__}"  # Para tracking
+            }
+        )
+    else:
+        # En desarrollo, mostrar detalles para debugging
+        return JSONResponse(
+            status_code=500,
+            content={
+                "detail": "Error interno del servidor",
+                "error": str(exc),
+                "type": exc.__class__.__name__,
+                "path": request.url.path
+            }
+        )
 
 
 # Incluir routers

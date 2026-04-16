@@ -14,8 +14,15 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/ -r requirements.txt
 
+# Create non-root user
+RUN useradd -m -u 1000 appuser && \
+    chown -R appuser:appuser /app
+
 # Copy application code
-COPY . .
+COPY --chown=appuser:appuser . .
+
+# Switch to non-root user
+USER appuser
 
 EXPOSE 8001
 
