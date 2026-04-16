@@ -12,7 +12,7 @@ import structlog
 
 from core.config import settings
 from api.v1 import sst_api, pipeline_api, auth_api
-from api.middleware.security import (
+from api.security_middleware import (
     limiter,
     SecurityHeadersMiddleware,
     FileSizeValidationMiddleware,

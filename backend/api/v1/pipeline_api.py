@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Request
 from typing import Optional
 from pydantic import BaseModel
 from datetime import datetime
+from core.config import settings
 
 router = APIRouter(prefix="/pipeline", tags=["Pipeline"])
 

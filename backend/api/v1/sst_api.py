@@ -20,7 +20,7 @@ from shared.exceptions import (
     LLMProcessingError,
     MatrizNotFoundError
 )
-from api.middleware.security import limiter
+from api.security_middleware import limiter
 from core.config import settings
 from core.security import get_current_user, get_current_user_optional
 

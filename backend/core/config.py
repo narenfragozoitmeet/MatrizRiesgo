@@ -2,60 +2,57 @@
 
 from pydantic_settings import BaseSettings
 from typing import List
-import os
+
 
 class Settings(BaseSettings):
-    # App
-    APP_NAME: str = "Riesgo IA"
-    VERSION: str = "1.1.0"
+    """Configuración principal de la aplicación"""
+    
+    # === APP ===
+    APP_NAME: str = "Matriz Riesgos SST"
+    VERSION: str = "1.2.0"
     DEBUG: bool = False
     ENVIRONMENT: str = "production"
     
-    # Database - MongoDB
-    MONGO_URL: str  # Sin default - debe venir de .env
+    # === DATABASE ===
+    MONGO_URL: str  # Requerido desde .env
     DB_NAME: str = "riesgo_ia"
     
-    # Database - PostgreSQL (opcional, para arquitectura híbrida)
-    POSTGRES_URL: str | None = None
-    
-    # AI/LLM
-    EMERGENT_LLM_KEY: str  # Sin default - debe venir de .env
+    # === AI/LLM ===
+    EMERGENT_LLM_KEY: str  # Requerido desde .env
     LLM_MODEL_PROVIDER: str = "gemini"
     LLM_MODEL_NAME: str = "gemini-2.5-flash"
+    LLM_TEMPERATURE: float = 0.1
+    LLM_MAX_TOKENS: int = 8000
     
-    # Security - JWT
-    JWT_SECRET_KEY: str  # Sin default - debe venir de .env
+    # === SECURITY - JWT ===
+    JWT_SECRET_KEY: str  # Requerido desde .env
     JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRATION_MINUTES: int = 60 * 24  # 24 horas
+    JWT_EXPIRATION_MINUTES: int = 1440  # 24 horas
     
-    # Security - CORS
-    CORS_ORIGINS: str  # Sin default - debe venir de .env
+    # === SECURITY - CORS & FILES ===
+    CORS_ORIGINS: str  # Requerido desde .env
     MAX_FILE_SIZE_MB: int = 100
     RATE_LIMIT_PER_MINUTE: int = 5
     
-    # Redis (para Celery)
-    REDIS_URL: str | None = None
-    
-    # Celery
-    CELERY_BROKER_URL: str | None = None
-    CELERY_RESULT_BACKEND: str | None = None
-    
-    # Paths
-    BASE_DIR: str = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # === PIPELINE ===
+    PIPELINE_ENABLED: bool = False
+    PIPELINE_AUTO_PROCESS: bool = True
+    PIPELINE_STORAGE_PATH: str = "/app/data/pipeline_ingestion"
     
     @property
     def cors_origins_list(self) -> List[str]:
-        """Convierte string de CORS a lista"""
+        """Retorna lista de orígenes CORS"""
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
     
     @property
     def max_file_size_bytes(self) -> int:
-        """Convierte MB a bytes"""
+        """Retorna tamaño máximo de archivo en bytes"""
         return self.MAX_FILE_SIZE_MB * 1024 * 1024
     
     class Config:
         env_file = ".env"
-        case_sensitive = True
+        env_file_encoding = "utf-8"
         extra = "ignore"
+
 
 settings = Settings()
