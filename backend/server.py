@@ -11,8 +11,7 @@ import logging
 import structlog
 
 from core.config import settings
-from api.v1 import sst_api
-from api.v1 import pipeline_api
+from api.v1 import sst_api, pipeline_api, auth_api
 from api.middleware.security import (
     limiter,
     SecurityHeadersMiddleware,
@@ -203,6 +202,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 # Incluir routers
+app.include_router(auth_api.router, prefix="/api/v1", tags=["Autenticación"])
 app.include_router(sst_api.router, prefix="/api/v1", tags=["Matriz SST"])
 app.include_router(pipeline_api.router, prefix="/api/v1", tags=["Pipeline"])
 
