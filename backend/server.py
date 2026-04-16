@@ -123,7 +123,7 @@ async def initialize_pipeline_system():
                    schedules=len(scheduler.get_schedules()))
         
     except Exception as e:
-        logger.error("pipeline_initialization_failed", exception=str(e), exc_info=True)
+        logger.error("pipeline_initialization_failed", error_detail=str(e), exc_info=True)
 
 # Crear app
 app = FastAPI(
@@ -275,7 +275,7 @@ async def health_check():
         mongodb.db.command('ping')
         health_status["database"] = "connected"
     except Exception as e:
-        logger.error("mongodb_health_check_failed", exception=str(e))
+        logger.error("mongodb_health_check_failed", error_detail=str(e))
         health_status["database"] = "disconnected"
         health_status["status"] = "degraded"
     
