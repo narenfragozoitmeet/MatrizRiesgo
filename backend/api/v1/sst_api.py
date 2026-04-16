@@ -1,20 +1,19 @@
-"""API v1 - SST Risk Matrix (Refactorizado con seguridad)"""
+"""API v1 - SST Risk Matrix (con Agentes LangChain)"""
 
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import uuid
 import logging
 import structlog
-from datetime import datetime
+from datetime import datetime, timezone
 
 from db.mongodb import get_mongodb
-from services.document_extractor import document_extractor
-from services.matriz_sst_processor import matriz_sst_processor
+from agents.chain import MatrizProcessingChain
 from services.excel_generator import excel_generator
 from models.matrices import MatrizResumen, TipoMatriz
-from shared.validators import DocumentValidator, TextValidator
+from shared.validators import DocumentValidator
 from shared.exceptions import (
     ValidationError,
     DocumentExtractionError,
@@ -27,6 +26,16 @@ from core.security import get_current_user, get_current_user_optional
 
 logger = structlog.get_logger()
 router = APIRouter()
+
+# Inicializar cadena de procesamiento (singleton)
+processing_chain = None
+
+def get_processing_chain() -> MatrizProcessingChain:
+    """Obtiene la instancia de la cadena de procesamiento"""
+    global processing_chain
+    if processing_chain is None:
+        processing_chain = MatrizProcessingChain()
+    return processing_chain
 
 # ============================================
 # MODELS
@@ -156,64 +165,50 @@ async def ingest_and_generate_matrix(
             file_size=len(file_data)
         )
         
-        # 3. Extracción de texto
-        try:
-            texto_extraido, tipo_doc = document_extractor.extract(
-                file_data, file.filename, file.content_type
-            )
-        except Exception as e:
-            raise DocumentExtractionError(
-                f"Error extrayendo texto del documento: {str(e)}"
-            )
+        # 3. Determinar tipo de archivo
+        file_type = None
+        if file.content_type == "application/pdf":
+            file_type = "pdf"
+        elif file.content_type in ["application/vnd.openxmlformats-officedocument.wordprocessingml.document"]:
+            file_type = "docx"
+        elif file.content_type in ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"]:
+            file_type = "xlsx"
+        else:
+            raise ValidationError("Tipo de archivo no soportado")
         
-        # 4. Validar y sanitizar texto
-        texto_extraido = TextValidator.validate_text(texto_extraido)
-        texto_sanitizado = TextValidator.sanitize_for_llm(texto_extraido)
+        # 4. Procesar documento con cadena de agentes LangChain
+        logger.info("processing_with_agents", file_type=file_type)
         
-        # 5. Procesamiento SST con LLM
-        try:
-            matriz = await matriz_sst_processor.procesar(
-                texto_documento=texto_sanitizado,
-                nombre_documento=file.filename,
-                document_id=document_id
-            )
-        except Exception as e:
-            raise LLMProcessingError(
-                f"Error procesando documento con IA: {str(e)}"
-            )
+        chain = get_processing_chain()
+        matriz_data = await chain.process_document(
+            file_data=file_data,
+            filename=file.filename,
+            file_type=file_type
+        )
         
-        # 6. Guardar documento original (Bronze)
+        # 5. Agregar user_id si está autenticado
+        matriz_data["user_id"] = user_id
+        
+        # 6. Guardar en MongoDB
         mongodb = get_mongodb()
-        bronze_doc = {
-            "_id": document_id,
-            "empresa": matriz.empresa,
-            "filename": file.filename,
-            "content_type": file.content_type,
-            "size_bytes": len(file_data),
-            "created_at": datetime.now()
-        }
-        mongodb.documentos_bronze.insert_one(bronze_doc)
-        
-        # 7. Guardar matriz (Gold)
         matriz_id = str(uuid.uuid4())
-        matriz_dict = matriz.model_dump()
-        matriz_dict["_id"] = matriz_id
-        matriz_dict["user_id"] = user_id  # Asociar al usuario si está autenticado
-        mongodb.matrices_sst.insert_one(matriz_dict)
+        matriz_data["_id"] = matriz_id
+        
+        mongodb.matrices_sst.insert_one(matriz_data)
         
         logger.info(
             "matriz_generated",
             matriz_id=matriz_id,
-            empresa=matriz.empresa,
-            total_riesgos=matriz.total_riesgos,
-            riesgos_criticos=matriz.riesgos_criticos
+            empresa=matriz_data["empresa"],
+            total_riesgos=matriz_data["total_riesgos"],
+            riesgos_criticos=matriz_data["riesgos_criticos"]
         )
         
         return IngestResponse(
             success=True,
-            message=f"Matriz SST generada exitosamente para {matriz.empresa}",
+            message=f"Matriz SST generada exitosamente para {matriz_data['empresa']}",
             matriz_id=matriz_id,
-            empresa=matriz.empresa
+            empresa=matriz_data["empresa"]
         )
         
     except (ValidationError, DocumentExtractionError, LLMProcessingError) as e:
