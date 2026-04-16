@@ -23,6 +23,7 @@ from shared.exceptions import (
 )
 from api.middleware.security import limiter
 from core.config import settings
+from core.security import get_current_user, get_current_user_optional
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -113,7 +114,8 @@ async def get_info_requisitos():
 @limiter.limit(f"{settings.RATE_LIMIT_PER_MINUTE}/minute")
 async def ingest_and_generate_matrix(
     request: Request,  # Requerido por slowapi
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user_optional)  # Auth opcional
 ):
     """
     Ingesta documento y genera matriz de riesgos SST
@@ -123,14 +125,17 @@ async def ingest_and_generate_matrix(
     - Tamaño máximo: {MAX_FILE_SIZE_MB}MB
     - Validación de tipo de archivo
     - Sanitización de texto
+    - Auth opcional (si está autenticado, se asocia al usuario)
     
     Args:
         file: Documento PDF, Word o Excel
+        current_user: Usuario autenticado (opcional)
     
     Returns:
         Matriz generada con ID y empresa detectada
     """
     document_id = str(uuid.uuid4())
+    user_id = current_user["sub"] if current_user else None
     
     try:
         # 1. Leer archivo
@@ -193,6 +198,7 @@ async def ingest_and_generate_matrix(
         matriz_id = str(uuid.uuid4())
         matriz_dict = matriz.model_dump()
         matriz_dict["_id"] = matriz_id
+        matriz_dict["user_id"] = user_id  # Asociar al usuario si está autenticado
         mongodb.matrices_sst.insert_one(matriz_dict)
         
         logger.info(
@@ -298,9 +304,15 @@ async def export_matriz(request: Request, matriz_id: str):
 
 
 @router.get("/matrices", response_model=List[MatrizResumen])
-async def list_matrices():
+async def list_matrices(
+    request: Request,
+    current_user: dict = Depends(get_current_user_optional)
+):
     """
     Lista todas las matrices SST generadas
+    
+    Si el usuario está autenticado, retorna solo sus matrices.
+    Si no está autenticado, retorna todas.
     
     Returns:
         Lista de matrices (máx 100, ordenadas por fecha)
@@ -309,7 +321,12 @@ async def list_matrices():
         mongodb = get_mongodb()
         matrices = []
         
-        sst_matrices = mongodb.matrices_sst.find().sort("created_at", -1).limit(100)
+        # Filtrar por usuario si está autenticado
+        query = {}
+        if current_user:
+            query["user_id"] = current_user["sub"]
+        
+        sst_matrices = mongodb.matrices_sst.find(query).sort("created_at", -1).limit(100)
         for m in sst_matrices:
             matrices.append(MatrizResumen(
                 id=m["_id"],
